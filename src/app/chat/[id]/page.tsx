@@ -43,6 +43,9 @@ import AlchemyAgent from "@/agents/Alchemy";
 const Lido = dynamic(() => import("@/agents/Lido"), {
   ssr: false,
 });
+const Bridge = dynamic(() => import("@/agents/Bridge"), {
+  ssr: false,
+});
 
 const Page = () => {
   const [inputValue, setInputValue] = useState("");
@@ -208,6 +211,10 @@ const Page = () => {
       getTokenDecimals: "/icons/gecko.png",
       getAvailablePlatforms: "/icons/gecko.png",
 
+      // Lifi Tools
+      GetBridgeQuote: "/icons/bridges.svg",
+      ExecuteBridge: "/icons/bridges.svg",
+
       // Uniswap tools
       swapTokens: "/icons/uniswap.png",
       getUniswapQuote: "/icons/uniswap.png",
@@ -252,6 +259,7 @@ const Page = () => {
       ToggleCollateral: "/icons/aave.svg",
       ApproveCreditDelegation: "/icons/aave.svg",
       Repay: "/icons/aave.svg",
+      Withdraw: "/icons/aave.svg",
       // GetUserTokenPosition: "/icons/aave.svg",
     };
 
@@ -811,6 +819,7 @@ const Page = () => {
       <Aave />
       <Knc />
       <Lido />
+      <Bridge />
       <AlchemyAgent />
 
       {/* <Curve /> */}

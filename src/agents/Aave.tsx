@@ -10,6 +10,7 @@ import {
   useBorrow,
   useApproveBorrowCreditDelegation,
   useRepay,
+  useWithdraw,
 } from "@aave/react";
 import {
   useCopilotAction,
@@ -34,16 +35,13 @@ const Aave = () => {
   const [supply] = useSupply();
   const [sendTransaction] = useSendTransaction(walletClient);
   const [signPermit] = useERC20Permit(walletClient);
-  const [toggleCollateral, toggling] = useCollateralToggle();
-  const [borrow, borrowing] = useBorrow();
-  const [repay, repaying] = useRepay();
-  const [approveCreditDelegation, approvingDelegation] =
+  const [toggleCollateral] = useCollateralToggle();
+  const [borrow] = useBorrow();
+  const [repay] = useRepay();
+  const [withdraw] = useWithdraw();
+  const [approveCreditDelegation] =
     useApproveBorrowCreditDelegation();
-  const {
-    data: userSupplies,
-    loading,
-    error,
-  } = useUserSupplies({
+  const { data: userSupplies, loading } = useUserSupplies({
     markets: data
       ? data.map((market) => ({
           chainId: market.chain.chainId,
@@ -53,11 +51,7 @@ const Aave = () => {
     user: userAddr ? evmAddress(userAddr) : undefined,
   });
 
-  const {
-    data: userBorrows,
-    loading: borrowsLoading,
-    error: borrowsError,
-  } = useUserBorrows({
+  const { data: userBorrows, loading: borrowsLoading } = useUserBorrows({
     markets: data
       ? data.map((market) => ({
           chainId: market.chain.chainId,
@@ -2040,33 +2034,373 @@ const Aave = () => {
     },
   });
 
-  const Test = async () => {
-    // Test Aave functions here
-    // const res = findHighestApyReserves(findHighestApyReserves || [], {
-    //   type: "supply",
-    // });
-    // console.log(res, "response");
+  // Action: Withdraw supplied assets from Aave markets
+  useCopilotAction({
+    name: "Withdraw",
+    description:
+      "Withdraw supplied assets from Aave markets. Supports ERC-20 or native (when supported), max withdrawal, and sending to another recipient.",
+    parameters: [
+      {
+        name: "tokenSymbol",
+        type: "string",
+        description:
+          "Token symbol to withdraw (e.g., WETH, USDC, DAI). Optional if address provided.",
+        required: false,
+      },
+      {
+        name: "address",
+        type: "string",
+        description: "Token contract address (overrides tokenSymbol if provided)",
+        required: false,
+      },
+      {
+        name: "amount",
+        type: "string",
+        description:
+          "Amount to withdraw. Use 'max' to withdraw full supplied balance.",
+        required: true,
+      },
+      {
+        name: "userAddress",
+        type: "string",
+        description:
+          "User wallet address (optional, defaults to connected wallet)",
+        required: false,
+      },
+      {
+        name: "useNative",
+        type: "boolean",
+        description:
+          "Withdraw as native token when reserve supports native (e.g., ETH for WETH)",
+        required: false,
+      },
+      {
+        name: "recipient",
+        type: "string",
+        description:
+          "Address to receive withdrawn funds (optional, defaults to sender)",
+        required: false,
+      },
+    ],
+    handler: async ({
+      tokenSymbol,
+      address,
+      amount,
+      userAddress,
+      useNative = false,
+      recipient,
+    }) => {
+      try {
+        const senderAddress = userAddress || userAddr || walletClient?.account?.address;
+        if (!senderAddress) {
+          return {
+            error:
+              "No wallet connected. Please connect a wallet or provide userAddress.",
+          };
+        }
 
-    const WETH = allReserves.find(
-      (r: ExtendedReserve) => r.underlyingToken.symbol === "WETH"
-    );
-    console.log(WETH, "WETH");
+        // Require an active wallet client for signing and sending transactions
+        if (!walletClient || !walletClient.account) {
+          return {
+            error: "Wallet client not available. Please connect your wallet.",
+          };
+        }
 
-    // const res = await executeSupplyOperation({
-    //   symbol: WETH?.underlyingToken.symbol,
-    //   address: WETH?.underlyingToken.address,
-    //   amount: "0.0005",
-    //   useNative: false,
-    //   usePermit: true,
-    // });
+        if (!tokenSymbol && !address) {
+          return { error: "Either token symbol or address is required" };
+        }
 
-    // console.log(res, "supply response");
-    console.log(userSupplies, "user supplies");
-    console.log(userBorrows, "user borrows");
-    console.log(
-      `Loading states - Supplies: ${loading}, Borrows: ${borrowsLoading}, Collateral Toggle: ${toggling.loading}, Borrowing: ${borrowing.loading}, Repaying: ${repaying.loading}, Credit Delegation: ${approvingDelegation.loading}`
-    );
-  };
+        // Find the user's supply position for this token
+        const upperSymbol = tokenSymbol?.toUpperCase();
+        const supplyPosition = userSupplies?.find((position) => {
+          const symbolMatch = upperSymbol
+            ? position.currency?.symbol?.toUpperCase() === upperSymbol
+            : false;
+          const addressMatch = address
+            ? position.currency?.address?.toLowerCase() ===
+              address.trim().toLowerCase()
+            : false;
+          return address ? addressMatch : symbolMatch;
+        });
+
+        if (!supplyPosition) {
+          return {
+            error: `No supply position found for ${tokenSymbol || address}. You must have a supplied balance to withdraw.`,
+          };
+        }
+
+        const balanceValueStr = supplyPosition.balance?.amount?.value || "0";
+        const balanceValue = parseFloat(balanceValueStr);
+        if (balanceValue <= 0) {
+          return { error: "No balance available to withdraw" };
+        }
+
+        // Find the corresponding reserve to check native support and flags
+        const target = (allReserves || []).find((r) => {
+          const bySymbol = upperSymbol
+            ? r?.type === "supply" &&
+              r?.underlyingToken?.symbol?.toUpperCase?.() === upperSymbol
+            : false;
+          const byAddress = address
+            ? r?.type === "supply" &&
+              r?.underlyingToken?.address?.toLowerCase?.() ===
+                address.trim().toLowerCase()
+            : false;
+          // additionally ensure same market as the position
+          const sameMarket =
+            r?.market?.address?.toLowerCase?.() ===
+            supplyPosition.market.address.toLowerCase();
+          return sameMarket && (address ? byAddress : bySymbol);
+        }) as Reserve | undefined;
+
+        if (!target) {
+          return { error: "Reserve not found for the provided token/market" };
+        }
+
+        if (target.isPaused) {
+          return { error: "Reserve is paused and cannot process withdrawals" };
+        }
+
+        // Determine amount config
+        const isMax = amount?.toLowerCase?.() === "max";
+        let valueConfig: { max: true } | { exact: ReturnType<typeof bigDecimal> };
+        let actualAmount = balanceValue; // default for max
+        if (isMax) {
+          valueConfig = { max: true as const };
+        } else {
+          if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+            return { error: "Invalid withdrawal amount provided" };
+          }
+          const num = Number(amount);
+          if (num > balanceValue) {
+            return {
+              error: `Requested amount (${num}) exceeds your supplied balance (${balanceValue}). Use 'max' to withdraw all.`,
+            };
+          }
+          valueConfig = { exact: bigDecimal(num) };
+          actualAmount = num;
+        }
+
+        const chainIdValue = supplyPosition.market.chain.chainId;
+        const marketAddress = supplyPosition.market.address;
+        const sender = evmAddress(senderAddress);
+        const currency = supplyPosition.currency.address;
+        const recipientAddr = recipient
+          ? evmAddress(recipient as string)
+          : undefined;
+
+        // Helper function mirroring other execution flows
+        type WithdrawResultReturn = ReturnType<typeof sendTransaction>;
+        type LooseWithdrawPlanAndThenable = {
+          andThen: (fn: (val: unknown) => unknown) => unknown;
+        };
+        const isLooseWithdrawPlanAndThenable = (
+          x: unknown
+        ): x is LooseWithdrawPlanAndThenable =>
+          typeof (x as { andThen?: unknown })?.andThen === "function";
+
+        type WithdrawTransactionRequestPlan = {
+          __typename: "TransactionRequest";
+        } & Record<string, unknown>;
+        type WithdrawApprovalRequiredPlan = {
+          __typename: "ApprovalRequired";
+          approval: Parameters<typeof sendTransaction>[0];
+          originalTransaction: Parameters<typeof sendTransaction>[0];
+        };
+        type WithdrawInsufficientBalanceErrorPlan = {
+          __typename: "InsufficientBalanceError";
+          required?: { value?: unknown };
+        };
+        type WithdrawExecutionPlan =
+          | WithdrawTransactionRequestPlan
+          | WithdrawApprovalRequiredPlan
+          | WithdrawInsufficientBalanceErrorPlan;
+
+        const execWithdrawPlan = (
+          plan: WithdrawExecutionPlan
+        ): WithdrawResultReturn | WithdrawExecutionPlan => {
+          const typename = plan?.__typename;
+          switch (typename) {
+            case "TransactionRequest":
+              return sendTransaction(
+                plan as unknown as Parameters<typeof sendTransaction>[0]
+              );
+            case "ApprovalRequired":
+              return sendTransaction(
+                (plan as WithdrawApprovalRequiredPlan).approval
+              ).andThen(() =>
+                sendTransaction(
+                  (plan as WithdrawApprovalRequiredPlan).originalTransaction
+                )
+              );
+            default:
+              return plan;
+          }
+        };
+
+        const execWithdrawPlanForAndThen = (plan: unknown): unknown =>
+          execWithdrawPlan(plan as WithdrawExecutionPlan);
+
+        const parseWithdrawResult = (
+          res: unknown
+        ): { hash?: unknown; error?: string } => {
+          try {
+            const typename = (res as { __typename?: string })?.__typename;
+            if (typename === "InsufficientBalanceError") {
+              const required = (res as WithdrawInsufficientBalanceErrorPlan)
+                ?.required?.value;
+              return {
+                error: `Insufficient balance${
+                  required ? `: requires ${String(required)}` : ""
+                }`,
+              };
+            }
+            const hasIsErr =
+              typeof (res as { isErr?: unknown }).isErr === "function";
+            if (hasIsErr) {
+              const r = res as {
+                isErr: () => boolean;
+                error?: unknown;
+                value?: unknown;
+              };
+              if (r.isErr()) {
+                const msg =
+                  r?.error instanceof Error
+                    ? r.error.message
+                    : "Withdraw failed";
+                return { error: msg };
+              }
+              return { hash: r.value };
+            }
+            return { hash: res };
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : "Withdraw failed";
+            return { error: msg };
+          }
+        };
+
+        // Native withdraw if requested and supported
+        if (useNative && target.acceptsNative) {
+          const initial = withdraw({
+            market: marketAddress,
+            amount: { native: { value: valueConfig as never } },
+            sender,
+            chainId: chainIdValue,
+            ...(recipientAddr ? { recipient: recipientAddr } : {}),
+          });
+          const executed = isLooseWithdrawPlanAndThenable(initial)
+            ? await (initial as LooseWithdrawPlanAndThenable).andThen(
+                execWithdrawPlanForAndThen
+              )
+            : execWithdrawPlan(initial as WithdrawExecutionPlan);
+          const out = parseWithdrawResult(executed);
+
+          if (out.error) {
+            return { error: out.error };
+          }
+
+          const tokenSym =
+            supplyPosition.currency?.symbol || tokenSymbol || "";
+          const price = await getTokenUsdPrice(tokenSym);
+          const createdAt = new Date().toISOString();
+
+          safeLog({
+            address: senderAddress,
+            agent: "Aave",
+            action: "Withdraw",
+            volume: actualAmount || 0,
+            token: tokenSym,
+            volumeUsd: (actualAmount || 0) * (price || 0),
+            extra: {
+              branch: "native",
+              chainId: chainIdValue,
+              market: marketAddress,
+              txHash: out.hash,
+              isMax: isMax,
+              recipient: recipient || senderAddress,
+              createdAt,
+            },
+          });
+
+          return {
+            success: true,
+            txHash: out.hash,
+            amount: isMax ? "max" : String(actualAmount),
+            token: tokenSym,
+            method: "native",
+            isMax,
+            recipient: recipient || senderAddress,
+            message: `Successfully withdrew ${isMax ? "max" : actualAmount} ${tokenSym}${
+              recipient ? ` to ${recipient}` : ""
+            }`,
+          };
+        }
+
+        // Standard ERC-20 withdraw
+        const plan = withdraw({
+          market: marketAddress,
+          amount: {
+            erc20: {
+              currency,
+              value: valueConfig as never,
+            },
+          },
+          sender,
+          chainId: chainIdValue,
+          ...(recipientAddr ? { recipient: recipientAddr } : {}),
+        });
+        const executed = isLooseWithdrawPlanAndThenable(plan)
+          ? await (plan as LooseWithdrawPlanAndThenable).andThen(
+              execWithdrawPlanForAndThen
+            )
+          : execWithdrawPlan(plan as WithdrawExecutionPlan);
+        const out = parseWithdrawResult(executed);
+
+        if (out.error) {
+          return { error: out.error };
+        }
+
+        const tokenSym = supplyPosition.currency?.symbol || tokenSymbol || "";
+        const price = await getTokenUsdPrice(tokenSym);
+        const createdAt = new Date().toISOString();
+
+        safeLog({
+          address: senderAddress,
+          agent: "Aave",
+          action: "Withdraw",
+          volume: actualAmount || 0,
+          token: tokenSym,
+          volumeUsd: (actualAmount || 0) * (price || 0),
+          extra: {
+            branch: "erc20",
+            chainId: chainIdValue,
+            market: marketAddress,
+            txHash: out.hash,
+            isMax: isMax,
+            recipient: recipient || senderAddress,
+            createdAt,
+          },
+        });
+
+        return {
+          success: true,
+          txHash: out.hash,
+          amount: isMax ? "max" : String(actualAmount),
+          token: tokenSym,
+          method: "erc20",
+          isMax,
+          recipient: recipient || senderAddress,
+          message: `Successfully withdrew ${isMax ? "max" : actualAmount} ${tokenSym}${
+            recipient ? ` to ${recipient}` : ""
+          }`,
+        };
+      } catch (e: unknown) {
+        const errorMessage =
+          e instanceof Error ? e.message : "Unexpected error during withdraw";
+        return { error: errorMessage };
+      }
+    },
+  });
 
   return null;
   // <button onClick={Test}>Test Aae</button>;
