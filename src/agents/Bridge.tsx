@@ -213,5 +213,6 @@ export default function Bridge() {
     console.log("Execution", exec);
     return exec;
   };
-  return <button onClick={Test}>Test</button>;
+  return null;
+  <button onClick={Test}>Test</button>;
 }
