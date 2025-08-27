@@ -4,6 +4,7 @@ export const chainImageMapping: { [key: string]: string } = {
   Arbitrum: "/icons/arbitrum.svg",
   Optimism: "/icons/optimism.svg",
   "BNB Smart Chain": "/icons/bsc.svg",
+  Polygon: "/icons/polygon.png",
   Monad: "/icons/monad.svg",
   Solana: "/icons/solana.svg",
   // "Avalanche": "/icons/avalanche.svg",

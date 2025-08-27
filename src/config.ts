@@ -1,7 +1,9 @@
 import {
   cookieStorage,
+  CreateConnectorFn,
   createStorage,
   getWalletClient,
+  injected,
   switchChain,
 } from "@wagmi/core";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
@@ -16,6 +18,8 @@ if (!projectId) {
 }
 
 export const networks = [mainnet, polygon];
+
+// List of Wagmi connectors
 
 //Set up the Wagmi Adapter (Config)
 export const wagmiAdapter = new WagmiAdapter({

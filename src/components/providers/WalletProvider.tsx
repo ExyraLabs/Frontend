@@ -4,12 +4,23 @@ import { projectId, wagmiAdapter } from "@/config";
 import { CopilotKit } from "@copilotkit/react-core";
 import { mainnet, polygon } from "@reown/appkit/networks";
 import { createAppKit } from "@reown/appkit/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
 import { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import { type ReactNode } from "react";
-import { cookieToInitialState, WagmiProvider, type Config } from "wagmi";
+import {
+  cookieToInitialState,
+  CreateConnectorFn,
+  injected,
+  WagmiProvider,
+  type Config,
+} from "wagmi";
 import { AaveClient, AaveProvider } from "@aave/react";
+import { CustomWagmiProvider } from "./CustomWagmiProvider";
 
 const client = AaveClient.create();
 
@@ -65,16 +76,13 @@ function WalletProvider({
 
   return (
     <SessionProvider session={session ?? undefined}>
-      <WagmiProvider
-        config={wagmiAdapter.wagmiConfig as Config}
-        initialState={initialState}
-      >
-        <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <CustomWagmiProvider initialState={initialState}>
           <CopilotKit runtimeUrl={runtimeUrl}>
             <AaveProvider client={client}>{children}</AaveProvider>
           </CopilotKit>
-        </QueryClientProvider>
-      </WagmiProvider>
+        </CustomWagmiProvider>
+      </QueryClientProvider>
     </SessionProvider>
   );
 }

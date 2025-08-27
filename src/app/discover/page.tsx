@@ -174,6 +174,22 @@ const AGENT_CARDS = [
     ],
     chains: ["Ethereum"],
   },
+  {
+    icon: "/icons/lifi.png",
+    title: "Li.Fi",
+    subtitle: "Cross-chain bridging powered by Li.Fi SDK",
+    category: "Bridge",
+    features: [
+      "Bridge tokens between Ethereum and Layer 2s",
+      "Support for multiple chains",
+      "Secure cross-chain transfers",
+    ],
+    prompts: [
+      "Bridge 0.1 ETH from Ethereum to Arbitrum",
+      "What are the bridge fees for USDC?",
+    ],
+    chains: ["Ethereum", "Polygon"],
+  },
 ];
 
 const Explore = () => {

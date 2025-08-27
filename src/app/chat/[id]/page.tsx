@@ -212,8 +212,8 @@ const Page = () => {
       getAvailablePlatforms: "/icons/gecko.png",
 
       // Lifi Tools
-      GetBridgeQuote: "/icons/bridges.svg",
-      ExecuteBridge: "/icons/bridges.svg",
+      GetBridgeQuote: "/icons/lifi.png",
+      ExecuteBridge: "/icons/lifi.png",
 
       // Uniswap tools
       swapTokens: "/icons/uniswap.png",
