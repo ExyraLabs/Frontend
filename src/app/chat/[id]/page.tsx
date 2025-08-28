@@ -39,6 +39,7 @@ import Uniswap from "@/agents/Uniswap";
 import Aave from "@/agents/Aave";
 import Knc from "@/agents/Knc";
 import AlchemyAgent from "@/agents/Alchemy";
+import { getToolIcon } from "@/utils/constants";
 
 const Lido = dynamic(() => import("@/agents/Lido"), {
   ssr: false,
@@ -91,10 +92,6 @@ const Page = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-  // console.log(loadSavedPrompts(), "SavedPrompts");
-  // console.log(
-  //   `Chat ID: ${id}, Messages loaded: ${messages.length}, Visible messages: ${visibleMessages.length}`
-  // );
 
   const { setMessages } = useCopilotMessagesContext();
   // Track whether we've hydrated the Copilot context for the current chat id
@@ -144,6 +141,13 @@ const Page = () => {
           toolCallsMap.set(actionMsg.id, {});
         }
         toolCallsMap.get(actionMsg.id)!.action = actionMsg;
+        // Debug: log tool call arguments
+        // console.log(
+        //   "[TOOL CALL] ActionExecutionMessage:",
+        //   actionMsg.name,
+        //   "Arguments:",
+        //   actionMsg.arguments
+        // );
       } else if (messageType === "ResultMessage") {
         const resultMsg = message as unknown as ResultMessage;
         const actionId = resultMsg.actionExecutionId;
@@ -151,6 +155,13 @@ const Page = () => {
           toolCallsMap.set(actionId, {});
         }
         toolCallsMap.get(actionId)!.result = resultMsg;
+        // console.log(
+        //   "[TOOL CALL] ResultMessage:",
+        //   "ActionExecutionId:",
+        //   actionId,
+        //   "Response:",
+        //   resultMsg.result
+        // );
       } else if (messageType === "TextMessage") {
         // Add text messages directly
         displayMessages.push(message as BaseMessage);
@@ -198,73 +209,6 @@ const Page = () => {
     }
     return candidate;
   }, [displayMessages, registeredActions]);
-
-  // Tool icon mapping based on tool name
-  const getToolIcon = (toolName: string): string | null => {
-    const toolIconMapping: Record<string, string> = {
-      // CoinGecko tools
-      GetTokenPrice: "/icons/gecko.png",
-      GetToken: "/icons/gecko.png",
-      getCoinDetails: "/icons/gecko.png",
-      searchCoinsByName: "/icons/gecko.png",
-      getContractAddress: "/icons/gecko.png",
-      getTokenDecimals: "/icons/gecko.png",
-      getAvailablePlatforms: "/icons/gecko.png",
-
-      // Lifi Tools
-      GetBridgeQuote: "/icons/lifi.png",
-      ExecuteBridge: "/icons/lifi.png",
-
-      // Uniswap tools
-      swapTokens: "/icons/uniswap.png",
-      getUniswapQuote: "/icons/uniswap.png",
-      executeSwap: "/icons/uniswap.png",
-      WrapETH: "/icons/uniswap.png",
-
-      // Lido tools
-      getLidoContractAddress: "/icons/Lido.png",
-      getLidoBalances: "/icons/Lido.png",
-      wrapETH: "/icons/Lido.png",
-      withdrawstETH: "/icons/Lido.png",
-      lidoConversions: "/icons/Lido.png",
-      lidoTokenOperations: "/icons/Lido.png",
-      lidoRpcConfiguration: "/icons/Lido.png",
-      lidoOverview: "/icons/Lido.png",
-      lidoStake: "/icons/Lido.png",
-      stakeETH: "/icons/Lido.png",
-      lidoStatistics: "/icons/Lido.png",
-      lidoWithdrawalApprove: "/icons/Lido.png",
-      lidoWithdrawalClaim: "/icons/Lido.png",
-      lidoWithdrawalInfo: "/icons/Lido.png",
-
-      // KyberSwap/KNC tools
-      getKyberSwapQuoteBySymbol: "/icons/kyber.png",
-      GettingRoutes: "/icons/kyber.png",
-      Swapping: "/icons/kyber.png",
-      executeKyberSwap: "/icons/kyber.png",
-
-      // Alchemy tools
-      getAccountBalance: "/icons/alchemy.svg",
-      getAllTokenBalances: "/icons/alchemy.svg",
-
-      // Add more tool mappings as needed
-      //Aave Tools
-      Lend: "/icons/aave.svg",
-      Borrow: "/icons/aave.svg",
-      FindingReserves: "/icons/aave.svg",
-      FindHighestApyReserves: "/icons/aave.svg",
-      // GetUserSupplyPositions: "/icons/aave.svg",
-      // GetUserBorrowPositions: "/icons/aave.svg",
-      GetUserPortfolio: "/icons/aave.svg",
-      ToggleCollateral: "/icons/aave.svg",
-      ApproveCreditDelegation: "/icons/aave.svg",
-      Repay: "/icons/aave.svg",
-      Withdraw: "/icons/aave.svg",
-      // GetUserTokenPosition: "/icons/aave.svg",
-    };
-
-    return toolIconMapping[toolName] || null;
-  };
 
   const renderToolMessage = (message: BaseMessage, index: number) => {
     const messageType =
@@ -330,6 +274,8 @@ const Page = () => {
 
       const isSuccess = toolCall.result?.status?.code === "Success" && !isError;
       const hasResult = !!toolCall.result;
+
+      console.log(toolCall.result, " Tool Call Result");
 
       // Show loading state or result
       if (!hasResult) {

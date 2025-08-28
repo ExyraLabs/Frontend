@@ -185,8 +185,8 @@ const AGENT_CARDS = [
       "Secure cross-chain transfers",
     ],
     prompts: [
-      "Bridge 0.1 ETH from Ethereum to Arbitrum",
-      "What are the bridge fees for USDC?",
+      "Bridge 1 USDC from Ethereum to Polygon - Li.Fi.",
+      "Swap 10 USDC from Polygon to Ethereum.",
     ],
     chains: ["Ethereum", "Polygon"],
   },

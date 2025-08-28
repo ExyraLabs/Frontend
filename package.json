@@ -17,7 +17,7 @@
     "@copilotkit/runtime": "^1.10.1",
     "@curvefi/api": "2.63.0",
     "@lidofinance/lido-ethereum-sdk": "^4.5.0",
-    "@lifi/sdk": "^3.10.1",
+    "@lifi/sdk": "^3.11.1",
     "@lifi/wallet-management": "^3.14.7",
     "@modelcontextprotocol/sdk": "^1.17.1",
     "@reduxjs/toolkit": "^2.8.2",

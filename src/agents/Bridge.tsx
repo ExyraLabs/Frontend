@@ -108,14 +108,17 @@ export default function Bridge() {
         address,
         agent: "Li.Fi",
         action: "Bridge",
-        volume: Number(r?.fromAmount || 0),
+        volume:
+          Number(r?.fromAmount || 0) /
+          Number(10 ** (r?.fromToken?.decimals || 0)),
         volumeUsd: Number(r?.fromAmountUSD || 0),
         token: r?.fromToken?.symbol || "",
         extra: { route: r },
       });
-      return { success: true, execution: result, updates } as const;
+      return { success: true, execution: result } as const;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Bridge execution failed";
+      console.log("Bridge execution error", msg);
       return { error: msg, updates } as const;
     }
   }
@@ -123,7 +126,7 @@ export default function Bridge() {
   useCopilotAction({
     name: "GetBridgeQuote",
     description:
-      "Get the best cross-chain route to bridge a token, including swaps if needed.",
+      "Get the best cross-chain/ same chain Li.fi route to bridge a token, including swaps if needed.",
     parameters: [
       {
         name: "fromChainId",
@@ -184,32 +187,84 @@ export default function Bridge() {
   useCopilotAction({
     name: "ExecuteBridge",
     description:
-      "Execute a previously returned LI.FI route. Requests approvals and sends all required transactions.",
+      "Execute a bridge transaction by first fetching the route and then executing it. Requests approvals and sends all required transactions.",
     parameters: [
       {
-        name: "route",
-        type: "object",
-        description: "Route object from GetBridgeQuote",
+        name: "fromChainId",
+        type: "number",
+        description: "Source chain ID",
         required: true,
       },
+      {
+        name: "toChainId",
+        type: "number",
+        description: "Destination chain ID",
+        required: true,
+      },
+      {
+        name: "fromToken",
+        type: "string",
+        description: "Source token address (use 0xEeee... or native wrapper)",
+        required: true,
+      },
+      {
+        name: "toToken",
+        type: "string",
+        description: "Destination token address",
+        required: true,
+      },
+      {
+        name: "amount",
+        type: "string",
+        description: "Human amount, e.g. '1.25'",
+        required: true,
+      },
+      {
+        name: "fromTokenDecimals",
+        type: "number",
+        description: "Decimals for fromToken (needed to convert to wei)",
+        required: true,
+      },
+      {
+        name: "recipient",
+        type: "string",
+        description: "Recipient on destination chain",
+        required: false,
+      },
+      {
+        name: "slippage",
+        type: "number",
+        description: "Max slippage in % (e.g. 0.5)",
+        required: false,
+      },
     ],
-    handler: async ({ route }) => {
+    handler: async (args: Omit<GetBridgeQuoteParams, "account">) => {
       if (!walletClient)
         return { error: "Connect a wallet to execute the bridge." };
-      return handleExecuteBridge({ route: route as Route });
+      const account = walletClient?.account?.address as Address | undefined;
+      if (!account) return { error: "Connect a wallet to get a bridge quote." };
+      const quote = await handleGetBridgeQuote({ ...args, account });
+      if ("error" in quote || !quote.success) {
+        return quote;
+      }
+      if (!quote.route) {
+        return { error: "No route in quote" };
+      }
+      return handleExecuteBridge({ route: quote.route });
     },
   });
 
   const Test = async () => {
+    console.log("testing");
     if (!walletClient)
       return { error: "Connect a wallet to execute the bridge." };
     const account = walletClient?.account?.address as Address | undefined;
     if (!account) return { error: "Connect a wallet to get a bridge quote." };
     const quote = await handleGetBridgeQuote({
-      fromChainId: 1,
-      toChainId: 137,
-      fromToken: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC on Ethereum
-      toToken: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", // USDC on Polygon
+      fromChainId: 137,
+      toChainId: 1,
+      toToken: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC on Ethereum
+      fromToken: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359", // USDC on Polygon
       amount: "2",
       fromTokenDecimals: 6,
       account,
