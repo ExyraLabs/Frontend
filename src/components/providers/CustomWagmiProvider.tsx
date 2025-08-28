@@ -64,6 +64,7 @@ export const CustomWagmiProvider: FC<CustomWagmiProviderProps> = ({
   });
 
   // Synchronize fetched chains with Wagmi config and update connectors
+
   useSyncWagmiConfig(wagmiAdapter.wagmiConfig, connectors, chains);
 
   return (
