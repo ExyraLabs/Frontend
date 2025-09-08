@@ -103,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
       imgSrc: "/icons/reward.min.svg",
       width: 32,
       height: 32,
-      href: "/rewards",
+      href: "/strategy",
       icon: (
         <svg
           width="24"

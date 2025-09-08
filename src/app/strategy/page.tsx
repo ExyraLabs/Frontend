@@ -4,16 +4,17 @@ import React, { useEffect, useState } from "react";
 import AgentCard from "@/components/AgentCard";
 import { chainImageMapping } from "@/utils/constants";
 import { useCopilotMessagesContext } from "@copilotkit/react-core";
+import StratCard from "@/components/StratsCard";
 
 const TABS = [
   "All",
-  "Swap",
-  "Stake",
-  "Lend",
-  "Bridge",
-  "Provide LP",
-  "Research",
-  "Trading",
+  "DEX",
+  "CEX",
+  "Swing Trade",
+  "Scalping",
+  "Arbitrage",
+  "HODL",
+  "DeFi",
 ];
 
 const CHAINS = [
@@ -27,73 +28,124 @@ const CHAINS = [
 ];
 
 // Card data
-const AGENT_CARDS = [
+export const STRATS_CARDS = [
   {
-    icon: "/icons/Lido.png",
-    title: "Lido Finance",
-    subtitle: "Liquid staking for Ethereum",
-    category: "Stake",
+    icon: [
+      "https://assets.coingecko.com/markets/images/698/small/bybit_spot.png",
+      "https://assets.coingecko.com/markets/images/52/small/binance.jpg",
+    ],
+    title: "Extended Creep",
+    subtitle: "Positioning at extended RSI levels",
+    category: "CEX",
     features: [
-      "Earn staking rewards on your ETH.",
-      "Participate in DeFi with stETH.",
+      "Identify tokens in the overbought/oversold zones.",
+      "Enter positions with reduced risk using RSI.",
     ],
     prompts: [
       // "How can I stake my ETH?",
       "Withdraw all Lido stETH in my wallet - Lido.",
       "Stake $4 worth of ETH for me.",
     ],
-    chains: ["Ethereum"],
+    chains: ["Ethereum", "BNB Smart Chain"],
+    tradeType: "Swing",
+    pnl: 12.5,
+    apy: 4.2,
+    riskLevel: "Medium",
+    tags: ["RSI", "Staking", "DeFi"],
+    history: [
+      {
+        coin: "ETH",
+        entryPrice: 3200,
+        exitPrice: 3400,
+        entryDate: "2025-08-01",
+        exitDate: "2025-08-15",
+      },
+      {
+        coin: "stETH",
+        entryPrice: 3300,
+        exitPrice: 3350,
+        entryDate: "2025-08-10",
+        exitDate: "2025-08-20",
+      },
+    ],
+    notes: "Strategy focuses on extended RSI levels for entry and exit.",
+    author: "Jane Doe",
+    followers: 128,
+    status: "active",
+    startDate: "2025-08-01",
+    endDate: undefined,
+    entryCriteria: "RSI above 70",
+    exitCriteria: "RSI below 30",
+    performanceMetrics: {
+      sharpeRatio: 1.2,
+      winRate: 75,
+      maxDrawdown: 8.5,
+    },
+    fees: {
+      trading: 0.1,
+      management: 0.05,
+    },
+    alerts: [
+      { type: "price", message: "ETH above $3400", triggeredAt: "2025-08-15" },
+      {
+        type: "drawdown",
+        message: "Max drawdown exceeded",
+        triggeredAt: "2025-08-10",
+      },
+    ],
+    visibility: "public",
+    supportedChains: ["Ethereum", "BNB Smart Chain"],
   },
-  {
-    icon: "/icons/uniswap.png",
-    title: "Uniswap",
-    subtitle: "Decentralized exchange for swapping tokens",
-    category: "Swap",
-    features: [
-      // "Swap any ERC-20 token instantly",
-      "Provide liquidity and earn fees",
-      "Access deep liquidity pools",
-    ],
-    prompts: [
-      // "Swap 10 USDC to ETH",
-      "Swap $4 worth of ETH for MATIC - Uniswap.",
-      "Swap 0.0002ETH to USDT - Uniswap.",
-    ],
-    chains: ["Ethereum"],
-  },
-  {
-    icon: "/icons/kyber.png",
-    title: "KyberSwap",
-    subtitle: "Multi-chain DEX aggregator",
-    category: "Swap",
-    features: [
-      "Find best token swap rates across chains.",
-      "Swap tokens on Ethereum, BSC, Polygon and more.",
-      "Earn rewards by providing liquidity.",
-    ],
-    prompts: [
-      // "Swap 5 BNB to USDT on BSC",
-      "Show KyberSwap rates for ETH/USDT",
-      "Swap 0.001 ETH to USDT on Ethereum - KyberSwap.",
-    ],
-    chains: ["Ethereum"],
-  },
-  {
-    icon: "/icons/gecko.png",
-    title: "CoinGecko",
-    subtitle: "Your go-to source for crypto market data",
-    category: "Research",
-    features: [
-      "Track price movements of your favorite coins.",
-      "Get real-time market data and charts.",
-      "Compare different cryptocurrencies.",
-    ],
-    prompts: [
-      "What is the current price of Bitcoin?",
-      "What is the brand image for Ethereum?",
-    ],
-    chains: ["Ethereum"],
-  },
+  // {
+  //   icon: "/icons/uniswap.png",
+  //   title: "Uniswap",
+  //   subtitle: "Decentralized exchange for swapping tokens",
+  //   category: "Swap",
+  //   features: [
+  //     // "Swap any ERC-20 token instantly",
+  //     "Provide liquidity and earn fees",
+  //     "Access deep liquidity pools",
+  //   ],
+  //   prompts: [
+  //     // "Swap 10 USDC to ETH",
+  //     "Swap $4 worth of ETH for MATIC - Uniswap.",
+  //     "Swap 0.0002ETH to USDT - Uniswap.",
+  //   ],
+  //   chains: ["Ethereum"],
+  // },
+  // {
+  //   icon: "/icons/kyber.png",
+  //   title: "KyberSwap",
+  //   subtitle: "Multi-chain DEX aggregator",
+  //   category: "Swap",
+  //   features: [
+  //     "Find best token swap rates across chains.",
+  //     "Swap tokens on Ethereum, BSC, Polygon and more.",
+  //     "Earn rewards by providing liquidity.",
+  //   ],
+  //   prompts: [
+  //     // "Swap 5 BNB to USDT on BSC",
+  //     "Show KyberSwap rates for ETH/USDT",
+  //     "Swap 0.001 ETH to USDT on Ethereum - KyberSwap.",
+  //   ],
+  //   chains: ["Ethereum"],
+  // },
+  // {
+  //   icon: "/icons/gecko.png",
+  //   title: "CoinGecko",
+  //   subtitle: "Your go-to source for crypto market data",
+  //   category: "Research",
+  //   features: [
+  //     "Track price movements of your favorite coins.",
+  //     "Get real-time market data and charts.",
+  //     "Compare different cryptocurrencies.",
+  //   ],
+  //   prompts: [
+  //     "What is the current price of Bitcoin?",
+  //     "What is the brand image for Ethereum?",
+  //   ],
+  //   chains: ["Ethereum"],
+  // },
   // {
   //   icon: "/icons/curve.jpeg",
   //   title: "Curve Finance",
@@ -110,23 +162,23 @@ const AGENT_CARDS = [
   //   ],
   //   chains: ["Ethereum", "Arbitrum", "Optimism"],
   // },
-  {
-    icon: "/icons/alchemy.svg",
-    title: "Alchemy SDK",
-    subtitle: "Powerful blockchain data and infrastructure",
-    category: "Research",
-    features: [
-      "Access comprehensive blockchain data.",
-      "Get real-time transaction information.",
-      "Query NFT metadata and ownership.",
-    ],
-    prompts: [
-      "Get all token balances in my wallet.",
-      // "Show me NFTs in my wallet",
-      "Check the balance of my address",
-    ],
-    chains: ["Ethereum"],
-  },
+  // {
+  //   icon: "/icons/alchemy.svg",
+  //   title: "Alchemy SDK",
+  //   subtitle: "Powerful blockchain data and infrastructure",
+  //   category: "Research",
+  //   features: [
+  //     "Access comprehensive blockchain data.",
+  //     "Get real-time transaction information.",
+  //     "Query NFT metadata and ownership.",
+  //   ],
+  //   prompts: [
+  //     "Get all token balances in my wallet.",
+  //     // "Show me NFTs in my wallet",
+  //     "Check the balance of my address",
+  //   ],
+  //   chains: ["Ethereum"],
+  // },
   // {
   //   icon: "/icons/curve.jpeg",
   //   title: "Curve Finance",
@@ -159,80 +211,38 @@ const AGENT_CARDS = [
   //   ],
   //   chains: ["Ethereum", "Arbitrum", "Optimism", "Base"],
   // },
-  {
-    icon: "/icons/aave.svg",
-    title: "Aave Protocol",
-    subtitle: "Decentralized lending and borrowing platform",
-    category: "Lend",
-    features: [
-      "Lend crypto assets to earn interest",
-      "Borrow against your collateral",
-      "Access flash loans",
-    ],
-    prompts: [
-      "Lend 0.0005 WETH",
-      "What are the current lending rates for WETH?",
-    ],
-    chains: ["Ethereum"],
-  },
-  {
-    icon: "/icons/lifi.png",
-    title: "Li.Fi",
-    subtitle: "Cross-chain bridging powered by Li.Fi SDK",
-    category: "Bridge",
-    features: [
-      "Bridge tokens between Ethereum and Layer 2s",
-      "Support for multiple chains",
-      "Secure cross-chain transfers",
-    ],
-    prompts: [
-      "Bridge 1 USDC from Ethereum to Polygon - Li.Fi.",
-      "Swap 10 USDC from Polygon to Ethereum.",
-    ],
-    chains: ["Ethereum", "Polygon"],
-  },
-  {
-    icon: "https://assets.coingecko.com/markets/images/52/small/binance.jpg",
-    title: "Binance",
-    subtitle: "Leading cryptocurrency exchange platform",
-    category: "Trading",
-    features: [
-      "Check your Binance account balance",
-      "Access real-time trading data",
-      "Secure API integration",
-    ],
-    prompts: ["What's my Binance balance?", "Check my Binance account balance"],
-    chains: [
-      "Ethereum",
-      "BNB Smart Chain",
-      "Arbitrum",
-      "Optimism",
-      "Solana",
-      "Monad",
-      "Berachain",
-    ],
-  },
-  {
-    icon: "https://assets.coingecko.com/markets/images/698/small/bybit_spot.png",
-    title: "Bybit",
-    subtitle: "Advanced cryptocurrency derivatives exchange",
-    category: "Trading",
-    features: [
-      "Check your Bybit account balance",
-      "Access derivatives trading data",
-      "Secure API integration",
-    ],
-    prompts: ["What's my Bybit balance?", "Check my Bybit account balance"],
-    chains: [
-      "Ethereum",
-      "BNB Smart Chain",
-      "Arbitrum",
-      "Optimism",
-      "Solana",
-      "Monad",
-      "Berachain",
-    ],
-  },
+  // {
+  //   icon: "/icons/aave.svg",
+  //   title: "Aave Protocol",
+  //   subtitle: "Decentralized lending and borrowing platform",
+  //   category: "Lend",
+  //   features: [
+  //     "Lend crypto assets to earn interest",
+  //     "Borrow against your collateral",
+  //     "Access flash loans",
+  //   ],
+  //   prompts: [
+  //     "Lend 0.0005 WETH",
+  //     "What are the current lending rates for WETH?",
+  //   ],
+  //   chains: ["Ethereum"],
+  // },
+  // {
+  //   icon: "/icons/lifi.png",
+  //   title: "Li.Fi",
+  //   subtitle: "Cross-chain bridging powered by Li.Fi SDK",
+  //   category: "Bridge",
+  //   features: [
+  //     "Bridge tokens between Ethereum and Layer 2s",
+  //     "Support for multiple chains",
+  //     "Secure cross-chain transfers",
+  //   ],
+  //   prompts: [
+  //     "Bridge 1 USDC from Ethereum to Polygon - Li.Fi.",
+  //     "Swap 10 USDC from Polygon to Ethereum.",
+  //   ],
+  //   chains: ["Ethereum", "Polygon"],
+  // },
 ];
 
 const Explore = () => {
@@ -242,7 +252,7 @@ const Explore = () => {
   const { setMessages } = useCopilotMessagesContext();
 
   // Repeat cards to fill the grid as in the screenshot
-  const cards = [...AGENT_CARDS];
+  const cards = [...STRATS_CARDS];
 
   // Filter cards based on active tab and selected chain
   const filteredCards = cards.filter((card) => {
@@ -265,7 +275,7 @@ const Explore = () => {
     <div className="flex flex-col px-4 scrollbar-hide  overflow-y-scroll w-full">
       {/* Page Title */}
       <h1 className="text-[28px] font-bold text-white mb-4 mt-2">
-        Explore Agents
+        Explore Strategies
       </h1>
 
       {/* Tabs and Filters Row */}
@@ -373,7 +383,7 @@ const Explore = () => {
             }}
             disabled={selectedChain === "All Chains" && activeTab === "All"}
           >
-            Clear Filters
+            Clear
           </button>
         </div>
       </div>
@@ -381,11 +391,11 @@ const Explore = () => {
       {/* Cards grid */}
       <div className="grid grid-cols-1  md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredCards.length > 0 ? (
-          filteredCards.map((card, idx) => <AgentCard key={idx} {...card} />)
+          filteredCards.map((card, idx) => <StratCard key={idx} {...card} />)
         ) : (
           <div className="col-span-full text-center py-12">
             <p className="text-[#99A0AE] text-lg">
-              No agents found matching your filters.
+              No strategies found matching your filters.
             </p>
             <p className="text-[#99A0AE] text-sm mt-2">
               Try adjusting your category or chain selection.
@@ -398,3 +408,55 @@ const Explore = () => {
 };
 
 export default Explore;
+
+export interface TradeHistoryEntry {
+  coin: string;
+  entryPrice: number;
+  exitPrice?: number;
+  entryDate?: string;
+  exitDate?: string;
+}
+
+export interface Strategy {
+  icon: string | string[];
+  title: string;
+  subtitle?: string;
+  category: string;
+  features?: string[];
+  prompts?: string[];
+  chains?: string[];
+  name?: string;
+  description?: string;
+  tradeType?: "Swing" | "Day" | "Scalp" | "Arbitrage" | "HODL" | string;
+  pnl?: number;
+  apy?: number;
+  history?: TradeHistoryEntry[];
+  riskLevel?: "Low" | "Medium" | "High" | string;
+  status?: "active" | "paused" | "completed" | "archived" | string;
+  startDate?: string;
+  endDate?: string;
+  currentHoldings?: string[];
+  entryCriteria?: string;
+  exitCriteria?: string;
+  performanceMetrics?: {
+    sharpeRatio?: number;
+    winRate?: number;
+    maxDrawdown?: number;
+    [key: string]: number | undefined;
+  };
+  fees?: {
+    trading?: number;
+    management?: number;
+    [key: string]: number | undefined;
+  };
+  tags?: string[];
+  author?: string;
+  followers?: number;
+  // backtestResults?: any;
+  // liveResults?: any;
+  notes?: string;
+  alerts?: Array<{ type: string; message: string; triggeredAt?: string }>;
+  visibility?: "public" | "private";
+  supportedChains?: string[];
+  icons?: string[];
+}

@@ -13,7 +13,10 @@ import {
 } from "../store/rewardsSlice";
 import { useChatRoomsMessages } from "../hooks/useChatRoomsMessages";
 import ConnectWalletModal from "./ConnectWalletModal";
-import { useCopilotMessagesContext } from "@copilotkit/react-core";
+import {
+  useCopilotMessagesContext,
+  useCopilotAdditionalInstructions,
+} from "@copilotkit/react-core";
 
 const examples = [
   "How can I get started?",
@@ -65,6 +68,15 @@ const ChatSection = () => {
   const count = useAppSelector(selectChatMessageCount);
   const limit = useAppSelector(selectDailyMessageLimit);
   const effectiveCount = Math.min(count, limit);
+
+  // Provide wallet context to CopilotKit
+  useCopilotAdditionalInstructions({
+    instructions: `${
+      address
+        ? `The connected wallet address is: ${address}. When using Balance_Bybit or Balance_Binance actions, always use this address as the user_address parameter.`
+        : "No wallet is currently connected. Prompt the user to connect their wallet before using exchange balance actions."
+    }`,
+  });
 
   // Contextual sample prompts per DeFi option
   const DefiSamples: Record<string, string[]> = {

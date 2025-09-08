@@ -222,7 +222,9 @@ export const rewardsSlice = createSlice({
       const today = todayISO();
       if (state.lastResetDate !== today) {
         state.lastResetDate = today;
-        state.chatMessageCount = 0;
+        if (!state.wallet) {
+          state.chatMessageCount = 0;
+        }
         state.lastIncrementMs = null;
         // reset repeatable tasks (progress & claimed if daily?) - for now only progress of chat tasks
         Object.values(state.tasks).forEach((task) => {

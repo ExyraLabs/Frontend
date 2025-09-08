@@ -39,6 +39,8 @@ import Uniswap from "@/agents/Uniswap";
 import Aave from "@/agents/Aave";
 import Knc from "@/agents/Knc";
 import AlchemyAgent from "@/agents/Alchemy";
+import Binance from "@/agents/Binance";
+import Bybit from "@/agents/Bybit";
 import { getToolIcon } from "@/utils/constants";
 
 const Lido = dynamic(() => import("@/agents/Lido"), {
@@ -216,7 +218,9 @@ const Page = () => {
 
     if (messageType === "CombinedToolCall") {
       const toolCall = message as CombinedToolCall;
+      console.log(toolCall, " Tool Call");
       const toolIcon = getToolIcon(toolCall.name);
+      const name = toolCall.name.split("_")[0];
       // Attempt to find the corresponding registered action by name (actions keyed by internal id)
       const actionEntry = Object.values(registeredActions || {}).find(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -235,7 +239,7 @@ const Page = () => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const args = (toolCall as any).arguments || {};
           interactiveElement = actionEntry.render({
-            name: toolCall.name,
+            name: name, // strip any suffixes
             args,
             status: "executing",
             result: undefined,
@@ -288,13 +292,13 @@ const Page = () => {
             {toolIcon && (
               <Image
                 src={toolIcon}
-                alt={`${toolCall.name} icon`}
+                alt={`${name} icon`}
                 width={16}
                 height={16}
                 className="rounded-sm"
               />
             )}
-            <span>{toolCall.name}...</span>
+            <span>{name}...</span>
             {interactiveElement && (
               <div className="mt-10 absolute left-0 top-full w-max z-50">
                 {interactiveElement}
@@ -321,13 +325,13 @@ const Page = () => {
           {toolIcon && (
             <Image
               src={toolIcon}
-              alt={`${toolCall.name} icon`}
+              alt={`${name} icon`}
               width={16}
               height={16}
               className="rounded-sm"
             />
           )}
-          <span className="text-xs text-[#d9d9d9]">{toolCall.name}</span>
+          <span className="text-xs text-[#d9d9d9]">{name}</span>
           {/* Completed actions do not render interactive UI */}
         </div>
       );
@@ -577,7 +581,12 @@ const Page = () => {
   }, [displayMessages]);
 
   useCopilotAdditionalInstructions({
-    instructions: `Whenever you are asked about swap routes and information, use the GettingRoutes tool.`,
+    instructions: `Whenever you are asked about swap routes and information, use the GettingRoutes tool.
+    ${
+      address
+        ? `The connected wallet address is: ${address}. When using Balance_Bybit or Balance_Binance actions, always use this address as the user_address parameter.`
+        : "No wallet is currently connected. Prompt the user to connect their wallet before using exchange balance actions."
+    }`,
   });
 
   return (
@@ -767,6 +776,9 @@ const Page = () => {
       <Lido />
       <Bridge />
       <AlchemyAgent />
+      <Binance />
+      <Bybit />
+      {/* <PancakeSwap /> */}
 
       {/* <Curve /> */}
     </div>

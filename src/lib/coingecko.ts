@@ -121,6 +121,39 @@ export interface CoinGeckoResponse {
   error?: string;
 }
 
+export interface CoinMarketData {
+  id: string;
+  symbol: string;
+  name: string;
+  image: string;
+  current_price: number;
+  market_cap: number;
+  market_cap_rank: number;
+  fully_diluted_valuation: number | null;
+  total_volume: number;
+  high_24h: number;
+  low_24h: number;
+  price_change_24h: number;
+  price_change_percentage_24h: number;
+  market_cap_change_24h: number;
+  market_cap_change_percentage_24h: number;
+  circulating_supply: number;
+  total_supply: number | null;
+  max_supply: number | null;
+  ath: number;
+  ath_change_percentage: number;
+  ath_date: string;
+  atl: number;
+  atl_change_percentage: number;
+  atl_date: string;
+  roi: {
+    times: number;
+    currency: string;
+    percentage: number;
+  } | null;
+  last_updated: string;
+}
+
 /**
  * Get standard headers for CoinGecko API requests
  */
@@ -469,3 +502,66 @@ export async function getAvailablePlatforms(symbol: string): Promise<string[]> {
 }
 
 // fetchCoinDetails("skyops").then((res) => console.log(res, "skyops details"));
+
+/**
+ * Fetch the image URL for a coin by symbol
+ * Returns the large image URL if available, otherwise null
+ */
+export async function fetchCoinImage(symbol: string): Promise<string | null> {
+  const coins = await findCoinsBySymbol(symbol);
+  if (coins.length === 0) return null;
+  const coinDetails = await fetchCoinDetails(coins[0].id);
+  return coinDetails?.image?.large || null;
+}
+
+// findCoinsBySymbol("AGT").then((res) => {
+//   console.log(res, "AGT matches");
+//   if (res.length > 0) {
+//     fetchCoinDetails(res[2].id).then((d) =>
+//       console.log(d?.image.large, "AGT details")
+//     );
+//   }
+// });
+
+/**
+ * Fetch all available categories from CoinGecko
+ */
+export async function fetchCategories(): Promise<
+  Array<{ id: string; name: string }>
+> {
+  const response = await fetchWithRetry(
+    "https://api.coingecko.com/api/v3/coins/categories/list",
+    {
+      headers: getCoinGeckoHeaders(),
+    },
+    COINGECKO_RETRY_OPTIONS
+  );
+
+  return response.json();
+}
+
+/**
+ * Fetch coins in a specific category
+ */
+export async function fetchCoinsByCategory(
+  categoryId: string
+): Promise<CoinData[]> {
+  const response = await fetchWithRetry(
+    `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&category=${categoryId}&order=market_cap_desc&per_page=100&page=1&sparkline=false&locale=en`,
+    {
+      headers: getCoinGeckoHeaders(),
+    },
+    COINGECKO_RETRY_OPTIONS
+  );
+
+  const data: CoinMarketData[] = await response.json();
+
+  // Transform the market data to match CoinData interface
+  return data.map((coin: CoinMarketData) => ({
+    id: coin.id,
+    symbol: coin.symbol,
+    name: coin.name,
+    platforms: {}, // Market data doesn't include platforms, so we'll leave it empty
+    tickers: [], // Market data doesn't include tickers
+  }));
+}

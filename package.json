@@ -20,6 +20,10 @@
     "@lifi/sdk": "^3.11.1",
     "@lifi/wallet-management": "^3.15.0",
     "@modelcontextprotocol/sdk": "^1.17.1",
+    "@pancakeswap/sdk": "5",
+    "@pancakeswap/smart-router": "^7.5.2",
+    "@pancakeswap/tokens": "^0.7.8",
+    "@pancakeswap/v3-sdk": "^3.9.5",
     "@reduxjs/toolkit": "^2.8.2",
     "@reown/appkit": "^1.7.17",
     "@reown/appkit-adapter-wagmi": "^1.7.17",
@@ -42,7 +46,7 @@
     "react-dom": "19.1.0",
     "react-hot-toast": "^2.5.2",
     "react-redux": "^9.2.0",
-    "viem": "^2.33.1",
+    "viem": "^2.36.0",
     "wagmi": "^2.16.0"
   },
   "devDependencies": {

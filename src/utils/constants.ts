@@ -97,6 +97,12 @@ export const getToolIcon = (toolName: string): string | null => {
     Repay: "/icons/aave.svg",
     Withdraw: "/icons/aave.svg",
     // GetUserTokenPosition: "/icons/aave.svg",
+
+    //Binance,
+    Balance_Bybit:
+      "https://assets.coingecko.com/markets/images/698/small/bybit_spot.png",
+    Balance_Binance:
+      "https://assets.coingecko.com/markets/images/52/small/binance.jpg",
   };
 
   return toolIconMapping[toolName] || null;
