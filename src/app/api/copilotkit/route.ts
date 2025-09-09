@@ -15,46 +15,6 @@ import { coingecko } from "./actions";
 // });
 const serviceAdapter = new OpenAIAdapter({ model: "gpt-4.1" });
 
-/**
- * Utility function to generate user-friendly error messages based on error type
- */
-export function getApiErrorMessage(
-  error: unknown,
-  context: string,
-  identifier: string
-): string {
-  if (!(error instanceof Error)) {
-    return `❌ Unknown error occurred while ${context} "${identifier}".`;
-  }
-
-  if (
-    error.message.includes("fetch failed") ||
-    error.message.includes("ETIMEDOUT")
-  ) {
-    return `⚠️ Network timeout error while ${context} "${identifier}". The CoinGecko API is currently slow or unreachable. Please try again in a few moments.`;
-  } else if (
-    error.message.includes("ENOTFOUND") ||
-    error.message.includes("DNS")
-  ) {
-    return `🌐 Network connection error while ${context} "${identifier}". Please check your internet connection and try again.`;
-  } else if (
-    error.message.includes("429") ||
-    error.message.includes("rate limit")
-  ) {
-    return `⏱️ API rate limit exceeded while ${context} "${identifier}". Please wait a moment and try again.`;
-  } else if (error.message.includes("404")) {
-    return `❌ "${identifier}" not found. Please verify the identifier is correct.`;
-  } else if (
-    error.message.includes("500") ||
-    error.message.includes("502") ||
-    error.message.includes("503")
-  ) {
-    return `🔧 CoinGecko API is currently experiencing issues while ${context} "${identifier}". Please try again later.`;
-  } else {
-    return `❌ Error ${context} "${identifier}": ${error.message}`;
-  }
-}
-
 const runtime = new CopilotRuntime({
   // createMCPClient: async (config) => {
   //   const mcpClient = new MCPClient({

@@ -8,7 +8,7 @@ import {
   getAvailablePlatforms,
   fetchCoinsByCategory,
 } from "@/lib/coingecko";
-import { getApiErrorMessage } from "./route";
+import { getApiErrorMessage } from "@/lib/utils";
 
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const coingecko: any[] = [

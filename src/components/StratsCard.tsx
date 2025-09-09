@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { chainImageMapping } from "@/utils/constants";
 import { useChatRoomsMessages } from "../hooks/useChatRoomsMessages";
+import { Icon } from "@iconify/react";
 
 interface TradeHistoryEntry {
   coin: string;
@@ -10,12 +11,14 @@ interface TradeHistoryEntry {
   exitPrice?: number;
   entryDate?: string;
   exitDate?: string;
+  pnl: number;
 }
 
 interface StratsCardProps {
   icon: string[];
   title: string;
   subtitle?: string;
+  followers: number;
   category: string;
   features?: string[];
   prompts?: string[];
@@ -33,6 +36,7 @@ const StratCard: React.FC<StratsCardProps> = ({
   title,
   subtitle,
   category,
+  followers,
   features = [],
   prompts = [],
   chains = [],
@@ -74,9 +78,9 @@ const StratCard: React.FC<StratsCardProps> = ({
   };
 
   return (
-    <div className="bg-[#303131] hover:border-white duration-1000 rounded-[16px] p-4 flex flex-col min-h-[300px] shadow-md border-[0.5px] border-[#303131]">
+    <div className="bg-[#222223] hover:border-white duration-1000 rounded-[16px] p-4 flex flex-col justify-between min-h-[219px] shadow-md border-[0.5px] border-[#303131]">
       {/* Header: Title, Category, Icons */}
-      <div className="flex items-center justify-between border-b border-[#474848] pb-2 mb-2">
+      <div className="flex items-start justify-between border-b border-[#474848] pb-2 ">
         <div className="flex items-center gap-3">
           {/* <div className="flex items-center">
             {Array.isArray(icon) ? (
@@ -108,9 +112,9 @@ const StratCard: React.FC<StratsCardProps> = ({
             )}
           </div> */}
           <div>
-            <div className="text-white text-lg font-semibold leading-tight">
+            <div className="text-white  font-semibold">
               <button
-                className="hover:underline text-left"
+                className="hover:underline cursor-pointer text-left"
                 onClick={() =>
                   router.push(
                     `/strategy/${title.replace(/\s+/g, "-").toLowerCase()}`
@@ -121,109 +125,90 @@ const StratCard: React.FC<StratsCardProps> = ({
               </button>
             </div>
             {subtitle && (
-              <div className="text-[#B5B5B5] text-xs leading-tight">
-                {subtitle.length > 30
-                  ? `${subtitle.slice(0, 30)}...`
+              <div className="text-[#9B9D9D] text-xs ">
+                {subtitle.length > 40
+                  ? `${subtitle.slice(0, 40)}...`
                   : subtitle}
               </div>
             )}
-            <div className="text-xs text-[#A79EF5] font-semibold mt-1">
-              {category}
+            <div className="flex mt-2 items-center">
+              {icon.map((item, idx) => (
+                <div
+                  key={idx.toString()}
+                  style={{ zIndex: idx }}
+                  className={idx === 0 ? "relative" : "relative -ml-2.5"}
+                >
+                  <Image
+                    src={item}
+                    alt={idx.toString()}
+                    width={24}
+                    height={24}
+                    className="inline-block rounded-full"
+                  />
+                </div>
+              ))}
             </div>
           </div>
         </div>
-        <div className="flex items-center">
-          {icon.map((item, idx) => (
-            <div
-              key={idx.toString()}
-              style={{ zIndex: idx }}
-              className={idx === 0 ? "relative" : "relative -ml-2.5"}
-            >
-              <Image
-                src={item}
-                alt={idx.toString()}
-                width={24}
-                height={24}
-                className="inline-block rounded-full"
+        <div className="flex flex-col justify-between h-full">
+          <div className="text-xs w-[57px] h-[24px] bg-[#595656]/17 rounded-[35px] p-2.5 flex items-center justify-center text-[#A79EF5] font-semibold mt-1">
+            {category}
+          </div>
+          {followers > 0 && (
+            <div className="text-[#F5B041]/80   text-[10px] flex items-center font-semibold mb-1">
+              +{followers}{" "}
+              <Icon
+                icon="fa7-solid:users-line"
+                width={16}
+                height={16}
+                className="ml-1"
               />
             </div>
-          ))}
+          )}
         </div>
       </div>
-      {/* Strategy Stats */}
-      <div className="flex flex-wrap gap-4 mb-2">
-        {/* {tradeType && (
-          <div className="text-xs text-[#B5B5B5]">
-            Type:{" "}
-            <span className="text-[#F5F7F7] font-semibold text-[10px]">
-              {tradeType}
-            </span>
+      {/* Features */}
+      <div className="flex   justify-between items-center">
+        <div className="w-[152px]   p-1 h-[46px] rounded-xl bg-[#1e1f1f] border-[0.5px] border-[#d9d9d9]/40">
+          <div className="bg-[#303131] flex items-center justify-center w-full h-full rounded-[10px]">
+            <p className="text-[#ADADAD] text-sm font-medium">
+              PNL:{" "}
+              <span className="text-[#06E574] ml-1 text-[18px] font-medium">
+                23.4%
+              </span>
+            </p>
           </div>
-        )} */}
-        {riskLevel && (
-          <div className="text-xs text-[#B5B5B5]">
-            Risk:{" "}
-            <span className="text-[#F5F7F7] font-semibold text-[10px]">
-              {riskLevel}
-            </span>
-          </div>
-        )}
-        {typeof pnl === "number" && (
-          <div className="text-xs text-[#B5B5B5]">
-            PNL:{" "}
-            <span
-              className={`font-semibold text-[10px] ${
-                pnl >= 0 ? "text-green-400" : "text-red-400"
-              }`}
-            >
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex     h-full justify-around flex-col">
+            <p className="text-xs text-[#9B9D9D] ">24h%</p>
+            <p className="text-xs  relative right-[16px] text-[#06E574] flex items-center">
+              <Icon icon={"icon-park-solid:up-one"} width={16} height={16} />
               {pnl}%
-            </span>
+            </p>
           </div>
-        )}
-        {typeof apy === "number" && (
-          <div className="text-xs text-[#B5B5B5]">
-            APY:{" "}
-            <span
-              className={`font-semibold text-[10px] ${
-                apy >= 0 ? "text-green-400" : "text-red-400"
-              }`}
-            >
-              {apy}%
-            </span>
+          <div className="flex  h-full justify-around flex-col">
+            <p className="text-xs text-[#9B9D9D] ">7d%</p>
+            <p className="text-xs  relative right-[16px] text-[#FC5050] flex items-center">
+              <Icon
+                className="rotate-180"
+                icon={"icon-park-solid:up-one"}
+                width={16}
+                height={16}
+              />
+              8.5%
+            </p>
           </div>
-        )}
-        {/* {tags.length > 0 && (
-          <div className="text-xs text-[#B5B5B5]">
-            Tags:{" "}
-            <span className="text-[#A79EF5] text-[12px]">
-              {tags.join(", ")}
-            </span>
-          </div>
-        )} */}
+        </div>
       </div>
 
-      {/* Features */}
-      {features.length > 0 && (
-        <div className="mb-2  rounded-lg p-2">
-          <div className="text-[#F5B041] text-xs font-semibold mb-1">
-            Features
-          </div>
-          <ul className="list-disc pl-5 text-[#F5F7F7] text-xs space-y-1">
-            {features.map((feature, idx) => (
-              <li key={idx} className="text-[#F7DC6F]">
-                {feature}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
       {/* Trade History */}
-      {history.length > 0 && (
-        <div className="mb-2  rounded-lg p-2">
+      {/* {history.length > 0 && (
+        <div className="my-2  rounded-lg ">
           <div className="text-[#5DADE2] text-xs font-semibold mb-1">
             History
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto p-2">
             <table className="min-w-full text-[10px] text-[#F5F7F7]">
               <thead>
                 <tr className="text-[#B5B5B5]">
@@ -232,13 +217,14 @@ const StratCard: React.FC<StratsCardProps> = ({
                   <th className="px-2 py-1">Exit</th>
                   <th className="px-2 py-1">Entry Date</th>
                   <th className="px-2 py-1">Exit Date</th>
+                  <th className="px-2 py-1">PNL</th>
                 </tr>
               </thead>
               <tbody>
                 {history.map((trade, idx) => (
                   <tr
                     key={idx}
-                    className={idx % 2 === 0 ? "bg-[#262727]" : "bg-[#303131]"}
+                    // className={  idx % 2 === 0 ? "bg-[#262727]" : "bg-[#303131]"}
                   >
                     <td className="px-2 py-1 text-[#F7DC6F]">{trade.coin}</td>
                     <td className="px-2 py-1 text-[#ABEBC6]">
@@ -253,13 +239,76 @@ const StratCard: React.FC<StratsCardProps> = ({
                     <td className="px-2 py-1 text-[#B5B5B5]">
                       {trade.exitDate ?? "-"}
                     </td>
+
+                    <td
+                      className={`px-2 py-1 ${
+                        typeof trade.pnl === "number"
+                          ? trade.pnl >= 0
+                            ? "text-green-400"
+                            : "text-red-400"
+                          : "text-[#B5B5B5]"
+                      }`}
+                    >
+                      {typeof trade.pnl === "number" ? trade.pnl : "-"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
-      )}
+      )} */}
+      {/* Strategy Stats */}
+      <div className="flex flex-wrap gap-4">
+        {riskLevel && (
+          <div className="text-xs flex items-center text-[#06E574]">
+            <Icon
+              icon={"material-symbols:info-rounded"}
+              width={16}
+              height={16}
+              className="mr-2"
+            />
+            Risk:{" "}
+            <span className="font-semibold ml-1 text-[10px]">{riskLevel}</span>
+          </div>
+        )}
+
+        {/* {typeof apy === "number" && (
+          <div className="text-xs text-[#B5B5B5]">
+            APY:{" "}
+            <span
+              className={`font-semibold text-[10px] ${
+                apy >= 0 ? "text-green-400" : "text-red-400"
+              }`}
+            >
+              {apy}%
+            </span>
+          </div>
+        )} */}
+        {/* {tags.length > 0 && (
+          <div className="text-xs text-[#B5B5B5]">
+            Tags:{" "}
+            <span className="text-[#A79EF5] text-[12px]">
+              {tags.join(", ")}
+            </span>
+          </div>
+        )} */}
+        {tradeType && (
+          <div className="text-xs flex items-center text-white">
+            <Image
+              src={"/icons/casino.svg"}
+              alt="trade type"
+              className="mr-1"
+              width={16}
+              height={16}
+            />
+            Trade Type:{" "}
+            <span className="text-[#F5F7F7] ml-1 font-semibold">
+              {tradeType}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

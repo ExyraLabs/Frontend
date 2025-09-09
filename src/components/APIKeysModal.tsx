@@ -100,7 +100,7 @@ export default function APIKeysModal({ isOpen, onClose }: APIKeysModalProps) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="w-[95vw] max-h-[95vh] max-w-[900px] rounded-2xl border border-[#2b2b2b] bg-gradient-to-br from-[#0b0b0b] via-[#111111] to-[#0f0f0f] p-8 shadow-2xl backdrop-blur-sm">
+      <div className="w-[95vw] z-50 max-h-[95vh] max-w-[900px] rounded-2xl border border-[#2b2b2b] bg-gradient-to-br from-[#0b0b0b] via-[#111111] to-[#0f0f0f] p-8 shadow-2xl backdrop-blur-sm">
         {/* Header */}
         <div className="mb-8 flex items-center  justify-between">
           <div>
