@@ -1,6 +1,11 @@
 "use server";
 import clientPromise from "@/lib/mongodb";
-import { encrypt, decrypt, encryptObject, decryptObject } from "@/lib/encryption";
+import {
+  encrypt,
+  decrypt,
+  encryptObject,
+  decryptObject,
+} from "@/lib/encryption";
 
 export type ExchangeKeys = {
   binance: { apiKey: string; secretKey: string };
@@ -85,11 +90,12 @@ export async function getUserApiKeys(address: string): Promise<{
       keys: decryptedKeys,
       message: "API keys retrieved successfully",
     };
-  } catch (error) {
+    //eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
     console.error("Error retrieving API keys:", error);
     return {
       success: false,
-      message: "Failed to retrieve API keys",
+      message: error.message || "Failed to retrieve API keys",
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
@@ -112,7 +118,10 @@ export async function deleteUserApiKeys(address: string): Promise<{
 
     return {
       success: true,
-      message: result.deletedCount > 0 ? "API keys deleted successfully" : "No API keys found to delete",
+      message:
+        result.deletedCount > 0
+          ? "API keys deleted successfully"
+          : "No API keys found to delete",
     };
   } catch (error) {
     console.error("Error deleting API keys:", error);

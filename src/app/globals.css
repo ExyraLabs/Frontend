@@ -41,6 +41,11 @@
   --color-foreground: var(--foreground);
   /* --color-primary: #E36640; */
   --color-primary: #5E4DFD;
+  --color-primary-light: #D98324;
+  --color-primary-light2: #A78BFA;
+  --color-primary-light3: #C4B5FD;
+  --color-primary-dark: #4C3BAA;
+  --color-primary-dark2: #3B2A87;
   --color-appGray: #303131;
   --color-appLight: #CEDBCE;
   --color-appDark: #1E1F1F;

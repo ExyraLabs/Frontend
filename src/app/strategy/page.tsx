@@ -5,6 +5,7 @@ import AgentCard from "@/components/AgentCard";
 import { chainImageMapping, STRATS_CARDS } from "@/utils/constants";
 import { useCopilotMessagesContext } from "@copilotkit/react-core";
 import StratCard from "@/components/StratsCard";
+import type { Strategy } from "@/types/strategy";
 
 const TABS = [
   "All",
@@ -36,7 +37,7 @@ const Explore = () => {
   const { setMessages } = useCopilotMessagesContext();
 
   // Repeat cards to fill the grid as in the screenshot
-  const cards = [...STRATS_CARDS];
+  const cards = [...STRATS_CARDS] as Strategy[];
 
   // Filter cards based on active tab and selected chain
   const filteredCards = cards.filter((card) => {
@@ -45,7 +46,8 @@ const Explore = () => {
 
     // Filter by chain
     const matchesChain =
-      selectedChain === "All Chains" || card.chains.includes(selectedChain);
+      selectedChain === "All Chains" ||
+      (card.chains && card.chains.includes(selectedChain));
 
     return matchesTab && matchesChain;
   });

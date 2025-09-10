@@ -4,21 +4,13 @@ import { useRouter } from "next/navigation";
 import { chainImageMapping } from "@/utils/constants";
 import { useChatRoomsMessages } from "../hooks/useChatRoomsMessages";
 import { Icon } from "@iconify/react";
-
-interface TradeHistoryEntry {
-  coin: string;
-  entryPrice: number;
-  exitPrice?: number;
-  entryDate?: string;
-  exitDate?: string;
-  pnl: number;
-}
+import type { TradeHistoryEntry } from "@/types/strategy";
 
 interface StratsCardProps {
-  icon: string[];
+  icon: string | string[];
   title: string;
   subtitle?: string;
-  followers: number;
+  followers?: string[]; // Array of wallet addresses
   category: string;
   features?: string[];
   prompts?: string[];
@@ -132,21 +124,33 @@ const StratCard: React.FC<StratsCardProps> = ({
               </div>
             )}
             <div className="flex mt-2 items-center">
-              {icon.map((item, idx) => (
-                <div
-                  key={idx.toString()}
-                  style={{ zIndex: idx }}
-                  className={idx === 0 ? "relative" : "relative -ml-2.5"}
-                >
+              {Array.isArray(icon) ? (
+                icon.map((item: string, idx: number) => (
+                  <div
+                    key={idx.toString()}
+                    style={{ zIndex: idx }}
+                    className={idx === 0 ? "relative" : "relative -ml-2.5"}
+                  >
+                    <Image
+                      src={item}
+                      alt={idx.toString()}
+                      width={24}
+                      height={24}
+                      className="inline-block rounded-full"
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="relative">
                   <Image
-                    src={item}
-                    alt={idx.toString()}
+                    src={icon}
+                    alt="strategy icon"
                     width={24}
                     height={24}
                     className="inline-block rounded-full"
                   />
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -154,9 +158,9 @@ const StratCard: React.FC<StratsCardProps> = ({
           <div className="text-xs w-[57px] h-[24px] bg-[#595656]/17 rounded-[35px] p-2.5 flex items-center justify-center text-[#A79EF5] font-semibold mt-1">
             {category}
           </div>
-          {followers > 0 && (
+          {(followers?.length || 0) > 0 && (
             <div className="text-[#F5B041]/80   text-[10px] flex items-center font-semibold mb-1">
-              +{followers}{" "}
+              +{followers?.length || 0}{" "}
               <Icon
                 icon="fa7-solid:users-line"
                 width={16}

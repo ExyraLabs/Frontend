@@ -12,8 +12,9 @@ const mockStrategy: Strategy = {
     "Identify tokens in the overbought/oversold zones.",
     "Enter positions with reduced risk using RSI",
   ],
-  entryCriteria: "RSI above 70",
-  exitCriteria: "RSI below 30",
+  entryCriterias: ["RSI above 70", "Volume increase > 20%"],
+  exitCriteria: ["RSI below 30", "Stop loss at -5%"],
+  exchanges: ["Binance", "Bybit"],
   apy: 26,
   notes: "Strategy focuses on momentum extremes",
   author: "Jane Doe",
@@ -26,7 +27,7 @@ const mockStrategy: Strategy = {
       exitDate: "2025-09-05",
     },
   ],
-  followers: 3,
+  followers: ["0x123...abc", "0x456...def", "0x789...ghi"],
 };
 
 describe("StrategyOverviewModal", () => {

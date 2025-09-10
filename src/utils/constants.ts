@@ -1,3 +1,5 @@
+import type { Strategy } from "@/types/strategy";
+
 export const chainImageMapping: { [key: string]: string } = {
   Ethereum: "/icons/ethereum.svg",
   Base: "/icons/base.svg",
@@ -11,7 +13,7 @@ export const chainImageMapping: { [key: string]: string } = {
   Berachain: "/icons/berachain.svg",
 };
 
-export const STRATS_CARDS = [
+export const STRATS_CARDS: Strategy[] = [
   {
     icon: [
       "https://assets.coingecko.com/markets/images/698/small/bybit_spot.png",
@@ -55,12 +57,18 @@ export const STRATS_CARDS = [
     ],
     notes: "Strategy focuses on extended RSI levels for entry and exit.",
     author: "Jane Doe",
-    followers: 128,
+    followers: [] as string[], // Array of wallet addresses following this strategy
     status: "active",
     startDate: "2025-08-01",
     endDate: undefined,
-    entryCriteria: "RSI above 70",
-    exitCriteria: "RSI below 30",
+    entryCriterias: ["RSI above 70", "Volume increase > 20%"],
+    exitCriteria: [
+      "RSI below 30",
+      "Stop loss at -5%",
+      "Take Profit at 20%",
+      "News coming out",
+    ],
+    exchanges: ["Binance", "Bybit"],
     performanceMetrics: {
       sharpeRatio: 1.2,
       winRate: 75,

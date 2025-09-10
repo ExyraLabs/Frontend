@@ -1,8 +1,7 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import Modal from "./Modal";
-import Image from "next/image";
+import React, { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
+import Modal from "./Modal";
 import type { Strategy, TradeHistoryEntry } from "@/types/strategy";
 
 interface StrategyOverviewModalProps {
@@ -67,7 +66,7 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
           <button
             aria-label="Close"
             onClick={onClose}
-            className="ml-auto text-white p-2 rounded-full hover:bg-[#3A3B3B]"
+            className="ml-auto cursor-pointer text-white p-2 rounded-full hover:bg-[#3A3B3B]"
           >
             <Icon icon="mdi:close" width={24} height={24} />
           </button>
@@ -76,130 +75,116 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
         <div className="flex-1  overflow-y-auto scrollbar-hide">
           {activeTab === "Overview" && (
             <div className="animate-fade-in">
-              <h2 className="text-[26px] font-bold text-primary mb-2">
+              <h2 className="text-[26px]  font-bold text-primary-light mb-2">
                 Overview
               </h2>
-              <p className="text-[#ffffff] max-w-[620px] mb-8">
+              <p className="text-[#ffffff] text-sm max-w-[620px] mb-8">
                 Smart insights to help you trade crypto with confidence.
               </p>
 
               <div className="bg-[#1E1F1F] rounded-[12px] p-6 flex flex-col gap-6">
-                <div className="grid grid-cols-1 md:grid-cols-[350px_170px_170px_115px_107px] gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-6 items-stretch">
                   {/* Features */}
-                  <div className="flex flex-col gap-3">
-                    <div className="text-white flex items-center gap-2">
+                  <div className="flex flex-col gap-3 h-full">
+                    <div className="text-white  flex items-center gap-2">
                       <Icon
                         icon="pajamas:issue-type-feature"
-                        className="text-white w-4 h-4"
+                        width={16}
+                        height={16}
+                        className="text-primary-light2"
                       />
                       Features
                     </div>
-                    <div className="bg-[#303131] rounded-[12px] p-4 text-[#EEE6E6] text-sm">
+                    <ul className="bg-[#303131] list-disc rounded-[12px] p-4 text-[#EEE6E6] text-xs h-full">
                       {strategy.features?.map((f, i) => (
-                        <p className="" key={i}>
+                        <li className="mx-2" key={i}>
                           {f}
-                        </p>
+                        </li>
                       )) || <p>No features listed.</p>}
-                    </div>
+                    </ul>
                   </div>
 
                   {/* Entry Criteria */}
-                  <div className="flex flex-col gap-3">
-                    <div className="text-white  flex items-center gap-2 text-sm">
+                  <div className="flex flex-col gap-3 h-full">
+                    <div className="text-white  flex items-center gap-2">
                       <Icon
                         icon="clarity:align-center-line"
-                        className="text-white w-4 h-4"
+                        className="text-[#10B981] w-4 h-4"
                       />
                       Entry Criteria
                     </div>
-                    <div className="bg-[#303131] rounded-[12px] p-4 text-white text-sm h-full">
-                      {strategy.entryCriteria || "-"}
-                    </div>
+                    <ul className="bg-[#303131] list-disc rounded-[12px] p-4 text-[#EEE6E6] text-xs h-full">
+                      {strategy.entryCriterias?.map((criteria, i) => (
+                        <li className="mx-2" key={i}>
+                          {criteria}
+                        </li>
+                      )) || <p>No entry criteria listed.</p>}
+                    </ul>
                   </div>
 
                   {/* Exit Criteria */}
-                  <div className="flex flex-col gap-3">
-                    <div className="text-white  flex items-center gap-2 text-sm">
+                  <div className="flex flex-col gap-3 h-full">
+                    <div className="text-white  flex items-center gap-2">
                       <Icon
                         icon="clarity:align-center-line"
-                        className="text-white w-4 h-4 rotate-180"
+                        className="text-[#EF4444] w-4 h-4 rotate-180"
                       />{" "}
                       Exit Criteria
                     </div>
-                    <div className="bg-[#303131] rounded-[12px] p-4 text-white text-sm h-full">
-                      {strategy.exitCriteria || "-"}
-                    </div>
+                    <ul className="bg-[#303131] list-disc rounded-[12px] p-4 text-[#EEE6E6] text-xs h-full">
+                      {strategy.exitCriteria?.map((criteria, i) => (
+                        <li className="mx-2" key={i}>
+                          {criteria}
+                        </li>
+                      )) || <p>No exit criteria listed.</p>}
+                    </ul>
                   </div>
 
                   {/* Exchange */}
-                  <div className="flex flex-col gap-3">
-                    <div className="text-white  flex items-center gap-2 text-sm">
+                  <div className="flex flex-col gap-3 h-full">
+                    <div className="text-white  flex items-center gap-2">
                       <Icon
                         icon="lucide-lab:coins-exchange"
-                        className="text-white w-4 h-4"
+                        className="text-[#F59E0B] w-4 h-4"
                       />{" "}
                       Exchange
                     </div>
-                    <div className="bg-[#303131] rounded-[12px] p-4 text-white text-sm h-full">
-                      {(Array.isArray(strategy.icon)
-                        ? "CEX"
-                        : strategy.category) || "-"}
-                    </div>
-                  </div>
-
-                  {/* APY */}
-                  <div className="flex flex-col gap-3">
-                    <div className="text-white flex items-center gap-2 text-sm">
-                      <Icon
-                        icon="fluent:data-whisker-20-regular"
-                        className="text-white w-4 h-4"
-                      />{" "}
-                      APY
-                    </div>
-                    <div className="bg-[#303131] rounded-[12px] p-4 text-white text-sm h-full">
-                      {typeof strategy.apy === "number"
-                        ? `${strategy.apy}%`
-                        : "26%"}
-                    </div>
+                    <ul className="bg-[#303131] list-disc rounded-[12px] p-4 text-[#EEE6E6] text-xs h-full">
+                      {strategy.exchanges?.map((exchange, i) => (
+                        <li className="mx-2" key={i}>
+                          {exchange}
+                        </li>
+                      )) || <p>No exchanges listed.</p>}
+                    </ul>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-[350px_170px_170px_115px_107px] gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-6 items-stretch">
                   {/* Notes */}
-                  <div className="flex flex-col gap-3">
-                    <div className="text-white flex items-center gap-2 text-sm">
+                  <div className="flex flex-col gap-3 h-full">
+                    <div className="text-white flex items-center gap-2">
                       <Icon
                         icon="hugeicons:note"
-                        className="text-white w-4 h-4"
+                        className="text-[#06B6D4] w-4 h-4"
                       />{" "}
                       Notes
                     </div>
-                    <div className="bg-[#303131] rounded-[12px] p-4 text-white text-sm h-full">
+                    <div className="bg-[#303131] rounded-[12px] p-4 text-[#EEE6E6] text-xs h-full">
                       {strategy.notes ||
                         strategy.features?.join("\n") ||
                         "No notes added."}
                     </div>
                   </div>
-                  {/* Author */}
-                  <div className="flex flex-col gap-3">
-                    <div className="text-white flex items-center gap-2 text-sm">
-                      <Icon icon="nrk:person" className="text-white w-4 h-4" />{" "}
-                      Author
-                    </div>
-                    <div className="bg-[#303131] rounded-[12px] p-4 text-white text-sm h-full">
-                      {strategy.author || "Unknown"}
-                    </div>
-                  </div>
                   {/* Trades count */}
-                  <div className="flex flex-col gap-3">
-                    <div className="text-white flex items-center gap-2 text-sm">
+                  <div className="flex flex-col gap-3 h-full">
+                    <div className="text-white flex items-center gap-2">
                       <Icon
                         icon="streamline-ultimate:trading-pattern-up"
-                        className="text-white w-4 h-4"
+                        className="text-primary-light w-4 h-4"
                       />{" "}
                       Trades
                     </div>
-                    <div className="bg-[#303131] rounded-[12px] p-4 text-white text-sm h-full">
+                    <div className="bg-[#303131] rounded-[12px] p-4 text-[#EEE6E6] text-xs h-full">
                       {strategy.history?.length || 0}
                     </div>
                   </div>
@@ -210,7 +195,7 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
 
           {activeTab === "Activities" && (
             <div className="animate-fade-in">
-              <h2 className="text-[26px] font-bold text-primary mb-2">
+              <h2 className="text-[26px] font-bold text-primary-light mb-2">
                 Activities
               </h2>
               <p className="text-white text-sm max-w-[620px] mb-8">
@@ -218,11 +203,11 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
               </p>
               <div className="bg-[#1E1F1F] md:h-[320px]  rounded-[12px] p-6 flex flex-col gap-6">
                 <div className="text-white font-medium mb-4 text-sm">
-                  {strategy.followers ?? 0} Subscribers
+                  {strategy.followers?.length || 0} Subscribers
                 </div>
                 <div className="flex flex-col gap-3  overflow-y-auto pr-2 scrollbar-hide">
                   {Array.from({
-                    length: Math.min(strategy.followers || 0, 15),
+                    length: Math.min(strategy.followers?.length || 0, 15),
                   }).map((_, idx) => (
                     <div
                       key={idx}
@@ -233,7 +218,12 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
                       </div>
                       <div className="flex-1 flex flex-col">
                         <div className="flex items-center gap-2 text-white text-sm font-medium">
-                          <Icon icon="tabler:wallet" width={20} height={20} />{" "}
+                          <Icon
+                            icon="tabler:wallet"
+                            width={20}
+                            height={20}
+                            className="text-[#F59E0B]"
+                          />{" "}
                           0x8A12X...1f7830
                         </div>
                         <div className="text-[#9B9D9D] text-[10px] mt-1">
@@ -257,7 +247,7 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
 
           {activeTab === "Transactions" && (
             <div className="animate-fade-in">
-              <h2 className="text-[26px] font-bold text-primary mb-2">
+              <h2 className="text-[26px] font-bold text-primary-light mb-2">
                 Transactions
               </h2>
               <p className="text-white text-sm max-w-[620px] mb-8">
