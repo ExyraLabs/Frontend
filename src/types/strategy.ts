@@ -35,7 +35,7 @@ export interface Strategy {
   tags?: string[];
   author?: string;
   followers?: string[]; // Array of wallet addresses
-  notes?: string;
+  notes?: string[];
   alerts?: Array<{ type: string; message: string; triggeredAt?: string }>;
   visibility?: "public" | "private";
   supportedChains?: string[];
@@ -66,7 +66,7 @@ export interface StrategyCore {
   fees?: Record<string, number | undefined>;
   tags?: string[];
   author?: string;
-  notes?: string;
+  notes?: string[];
   visibility?: "public" | "private";
   supportedChains?: string[];
   icons?: string[];

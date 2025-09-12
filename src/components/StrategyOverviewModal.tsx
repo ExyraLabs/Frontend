@@ -169,11 +169,13 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
                       />{" "}
                       Notes
                     </div>
-                    <div className="bg-[#303131] rounded-[12px] p-4 text-[#EEE6E6] text-xs h-full">
-                      {strategy.notes ||
-                        strategy.features?.join("\n") ||
-                        "No notes added."}
-                    </div>
+                    <ul className="bg-[#303131] list-disc rounded-[12px] p-4 text-[#EEE6E6] text-xs h-full">
+                      {strategy.notes?.map((note, i) => (
+                        <li className="mx-2" key={i}>
+                          {note}
+                        </li>
+                      )) || <p>No notes found.</p>}
+                    </ul>
                   </div>
                   {/* Trades count */}
                   <div className="flex flex-col gap-3 h-full">

@@ -1,6 +1,7 @@
 "use server";
 import clientPromise from "@/lib/mongodb";
 import type { Strategy } from "@/types/strategy";
+import { STRATS_CARDS } from "@/utils/constants";
 
 // Interface for user strategy data
 interface UserStrategy {
@@ -23,9 +24,13 @@ interface TradeEntry {
   date: Date;
   type: "buy" | "sell";
   amount: number;
-  price: number;
+  entryPrice: number;
+  entryDate: Date;
+  exitPrice: number;
+  exitDate: Date;
   pnl: number;
   exchange: "Bybit" | "Binance";
+  asset: string;
 }
 
 /**
@@ -363,7 +368,7 @@ export async function updateStrategyFollowers({
 }
 
 /**
- * Initialize strategies collection with the Extended Creep strategy
+ * Initialize strategies collection with strategies from constants
  */
 export async function initializeStrategiesCollection(): Promise<{
   success: boolean;
@@ -375,72 +380,176 @@ export async function initializeStrategiesCollection(): Promise<{
     const db = client.db();
     const strategiesCollection = db.collection("strategies");
 
-    // Check if Extended Creep strategy already exists
-    const existingStrategy = await strategiesCollection.findOne({
-      strategyId: "extended-creep",
-    });
+    // Clear existing strategies to replace with updated ones
+    await strategiesCollection.deleteMany({});
 
-    if (existingStrategy) {
-      return {
-        success: true,
-        message: "Extended Creep strategy already exists",
-      };
-    }
-
-    // Create the Extended Creep strategy
-    const extendedCreepStrategy = {
-      strategyId: "extended-creep",
-      title: "Extended Creep",
-      subtitle: "Long-term momentum trading strategy",
-      category: "Momentum",
-      icon: ["/icons/eth.svg", "/icons/usdt.svg"],
-      description:
-        "A sophisticated momentum-based trading strategy that identifies and capitalizes on extended price movements across multiple timeframes.",
-      tradeType: "Swing Trading",
-      riskLevel: "Medium",
-      status: "active",
-      startDate: "2024-01-01",
-      compatibility:
-        "Compatible with all major wallets including MetaMask, Trust Wallet, and Coinbase Wallet.",
-      exchanges: ["Bybit", "Binance"],
-      supportedChains: ["Ethereum", "Binance Smart Chain"],
-      author: "Exyra Labs",
-      followers: [], // Array of wallet addresses
-      visibility: "public" as const,
-      features: [
-        "Multi-timeframe analysis",
-        "Risk management protocols",
-        "Automated position sizing",
-        "Real-time market monitoring",
-      ],
-      tags: ["momentum", "swing-trading", "multi-timeframe", "automated"],
-      fees: {
-        managementFee: 2.0,
-        performanceFee: 20.0,
-      },
+    // Convert strategies from constants to database format
+    const strategiesToInsert = STRATS_CARDS.map((strategy) => ({
+      strategyId: strategy.title.toLowerCase().replace(/\s+/g, "-"),
+      title: strategy.title,
+      subtitle: strategy.subtitle,
+      category: strategy.category,
+      icon: strategy.icon,
+      description: strategy.subtitle, // Using subtitle as description
+      tradeType: strategy.tradeType,
+      riskLevel: strategy.riskLevel,
+      status: strategy.status,
+      startDate: strategy.startDate,
+      endDate: strategy.endDate,
+      compatibility: strategy.compatibility,
+      exchanges: strategy.exchanges,
+      supportedChains: strategy.supportedChains,
+      author: strategy.author,
+      followers: strategy.followers || [],
+      visibility: strategy.visibility,
+      features: strategy.features,
+      notes: strategy.notes,
+      prompts: strategy.prompts,
+      chains: strategy.chains,
+      tags: strategy.tags,
+      history: strategy.history,
+      entryCriterias: strategy.entryCriterias,
+      exitCriteria: strategy.exitCriteria,
       performanceMetrics: {
-        totalAUM: 2400000, // $2.4M
-        monthlyReturn: 8.5,
-        yearlyReturn: 23.4,
-        sharpeRatio: 1.8,
-        maxDrawdown: 12.3,
-        winRate: 68.5,
+        ...strategy.performanceMetrics,
+        pnl: strategy.pnl,
+        apy: strategy.apy,
       },
+      fees: {
+        trading: strategy.fees?.trading || 0.1,
+        management: strategy.fees?.management || 0.05,
+      },
+      alerts: strategy.alerts || [],
       createdAt: new Date(),
       updatedAt: new Date(),
-    };
+    }));
 
-    await strategiesCollection.insertOne(extendedCreepStrategy);
+    // Insert all strategies
+    const result = await strategiesCollection.insertMany(strategiesToInsert);
 
     return {
       success: true,
-      message: "Extended Creep strategy created successfully",
+      message: `Successfully initialized ${result.insertedCount} strategies`,
     };
   } catch (error) {
     console.error("Error initializing strategies collection:", error);
     return {
       success: false,
       message: "Failed to initialize strategies collection",
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Get user's total allocated funds across all strategies and exchanges
+ */
+export async function getUserTotalAllocation({
+  walletAddress,
+}: {
+  walletAddress: string;
+}): Promise<{
+  success: boolean;
+  totalAllocated?: number;
+  totalByExchange?: {
+    Bybit: number;
+    Binance: number;
+  };
+  allocationsByStrategy?: Array<{
+    strategyId: string;
+    strategyName: string;
+    totalFunds: number;
+    allocations: Array<{
+      funds: number;
+      exchange: string;
+      dateAllocated: Date;
+    }>;
+  }>;
+  message: string;
+  error?: string;
+}> {
+  try {
+    if (!walletAddress) {
+      return {
+        success: false,
+        message: "Wallet address is required",
+      };
+    }
+
+    const client = await clientPromise;
+    const db = client.db();
+    const usersCollection = db.collection("users");
+
+    // Find user and their strategies
+    const user = await usersCollection.findOne({
+      address: walletAddress.toLowerCase(),
+    });
+
+    if (!user || !user.strategies) {
+      return {
+        success: true,
+        totalAllocated: 0,
+        totalByExchange: { Bybit: 0, Binance: 0 },
+        allocationsByStrategy: [],
+        message: "No allocations found",
+      };
+    }
+
+    // Calculate total allocation across all strategies
+    const totalAllocated = user.strategies.reduce(
+      (sum: number, strategy: UserStrategy) => sum + (strategy.funds || 0),
+      0
+    );
+
+    // Calculate total by exchange
+    const totalByExchange = user.strategies.reduce(
+      (acc: { Bybit: number; Binance: number }, strategy: UserStrategy) => {
+        if (strategy.selectedExchange === "Bybit") {
+          acc.Bybit += strategy.funds || 0;
+        } else if (strategy.selectedExchange === "Binance") {
+          acc.Binance += strategy.funds || 0;
+        }
+        return acc;
+      },
+      { Bybit: 0, Binance: 0 }
+    );
+
+    // Group by strategy
+    const strategiesMap = new Map();
+    user.strategies.forEach((strategy: UserStrategy) => {
+      const key = strategy.strategyId;
+      if (!strategiesMap.has(key)) {
+        strategiesMap.set(key, {
+          strategyId: strategy.strategyId,
+          strategyName: strategy.strategyName,
+          totalFunds: 0,
+          allocations: [],
+        });
+      }
+
+      const strategyData = strategiesMap.get(key);
+      strategyData.totalFunds += strategy.funds || 0;
+      strategyData.allocations.push({
+        funds: strategy.funds,
+        exchange: strategy.selectedExchange,
+        dateAllocated: strategy.dateAllocated,
+      });
+    });
+
+    const allocationsByStrategy = Array.from(strategiesMap.values());
+
+    return {
+      success: true,
+      totalAllocated,
+      totalByExchange,
+      allocationsByStrategy,
+      message: "Total allocation retrieved successfully",
+    };
+  } catch (error) {
+    console.error("Error fetching user total allocation:", error);
+    return {
+      success: false,
+      message: "Failed to fetch total allocation",
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
@@ -487,7 +596,7 @@ export async function getUserStrategyAllocation({
         message: "No allocations found for this strategy",
       };
     }
-    console.log(user, "user");
+    // console.log(user, "user");
 
     // Filter strategies by strategyId and sum up the funds
     const strategyAllocations = user.strategies.filter(
@@ -516,6 +625,77 @@ export async function getUserStrategyAllocation({
     return {
       success: false,
       message: "Failed to fetch strategy allocation",
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Get user's transaction history for a specific strategy
+ */
+export async function getUserStrategyTransactions({
+  walletAddress,
+  strategyId,
+}: {
+  walletAddress: string;
+  strategyId: string;
+}): Promise<{
+  success: boolean;
+  transactions?: TradeEntry[];
+  message: string;
+  error?: string;
+}> {
+  try {
+    if (!walletAddress || !strategyId) {
+      return {
+        success: false,
+        message: "Wallet address and strategy ID are required",
+      };
+    }
+
+    const client = await clientPromise;
+    const db = client.db();
+    const usersCollection = db.collection("users");
+
+    // Find user and their strategies
+    const user = await usersCollection.findOne({
+      address: walletAddress.toLowerCase(),
+    });
+
+    if (!user || !user.strategies) {
+      return {
+        success: true,
+        transactions: [],
+        message: "No transactions found for this strategy",
+      };
+    }
+
+    // Find the specific strategy and get its trade history
+    const strategy = user.strategies.find(
+      (s: UserStrategy) => s.strategyId === strategyId
+    );
+
+    if (!strategy) {
+      return {
+        success: true,
+        transactions: [],
+        message: "Strategy not found for this user",
+      };
+    }
+
+    // Return the trade history (transactions)
+    const transactions = strategy.tradeHistory || [];
+
+    return {
+      success: true,
+      transactions,
+      message: "Transactions retrieved successfully",
+    };
+  } catch (error) {
+    console.error("Error fetching user strategy transactions:", error);
+    return {
+      success: false,
+      message: "Failed to fetch transactions",
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }

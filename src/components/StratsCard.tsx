@@ -1,7 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { chainImageMapping } from "@/utils/constants";
+import { getRiskLevelColor } from "@/utils/constants";
 import { useChatRoomsMessages } from "../hooks/useChatRoomsMessages";
 import { Icon } from "@iconify/react";
 import type { TradeHistoryEntry } from "@/types/strategy";
@@ -178,7 +178,7 @@ const StratCard: React.FC<StratsCardProps> = ({
             <p className="text-[#ADADAD] text-sm font-medium">
               PNL:{" "}
               <span className="text-[#06E574] ml-1 text-[18px] font-medium">
-                23.4%
+                {pnl}%
               </span>
             </p>
           </div>
@@ -265,7 +265,11 @@ const StratCard: React.FC<StratsCardProps> = ({
       {/* Strategy Stats */}
       <div className="flex flex-wrap gap-4">
         {riskLevel && (
-          <div className="text-xs flex items-center text-[#06E574]">
+          <div
+            className={`text-xs flex items-center ${getRiskLevelColor(
+              riskLevel
+            )}`}
+          >
             <Icon
               icon={"material-symbols:info-rounded"}
               width={16}

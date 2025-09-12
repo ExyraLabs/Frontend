@@ -6,8 +6,9 @@ import { useParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useAppKitAccount } from "@reown/appkit/react";
 import toast from "react-hot-toast";
-import { STRATS_CARDS } from "@/utils/constants";
+import { STRATS_CARDS, getRiskLevelColor } from "@/utils/constants";
 import type { Strategy } from "@/types/strategy";
+import type { Transaction } from "@/types/transaction";
 import StrategyOverviewModal, {
   type TabKey,
 } from "@/components/StrategyOverviewModal";
@@ -16,6 +17,8 @@ import { get, set } from "@/utils/redis";
 import {
   allocateUserStrategy,
   getUserStrategyAllocation,
+  getUserTotalAllocation,
+  getUserStrategyTransactions,
 } from "@/actions/strategies";
 
 // Type for API error responses
@@ -31,72 +34,84 @@ interface ApiError {
 const slugify = (s: string) => s.replace(/\s+/g, "-").toLowerCase();
 
 // TODO: Replace with actual data from database
-const DUMMY_TRANSACTIONS = [
+const DUMMY_TRANSACTIONS: Transaction[] = [
   {
-    id: 1,
-    type: "buy" as const,
+    id: "1",
+    type: "buy",
     asset: "ETH/USDT",
-    amount: "100",
-    entryPrice: "2100",
-    entryDate: "12/15/24, 05:05am",
-    exitPrice: "2300",
-    exitDate: "12/18/24, 02:30pm",
-    pnl: "+200",
+    amount: 100,
+    entryPrice: 2100,
+    entryDate: new Date("2024-12-15T05:05:00"),
+    exitPrice: 2300,
+    exitDate: new Date("2024-12-18T14:30:00"),
+    pnl: 200,
+    exchange: "Bybit",
+    date: new Date("2024-12-15T05:05:00"),
   },
   {
-    id: 2,
-    type: "sell" as const,
+    id: "2",
+    type: "sell",
     asset: "BTC/USDT",
-    amount: "75",
-    entryPrice: "45000",
-    entryDate: "12/10/24, 09:15am",
-    exitPrice: "44200",
-    exitDate: "12/12/24, 11:45am",
-    pnl: "-60",
+    amount: 75,
+    entryPrice: 45000,
+    entryDate: new Date("2024-12-10T09:15:00"),
+    exitPrice: 44200,
+    exitDate: new Date("2024-12-12T11:45:00"),
+    pnl: -60,
+    exchange: "Binance",
+    date: new Date("2024-12-10T09:15:00"),
   },
   {
-    id: 3,
-    type: "buy" as const,
+    id: "3",
+    type: "buy",
     asset: "SOL/USDT",
-    amount: "250",
-    entryPrice: "95",
-    entryDate: "12/08/24, 02:20pm",
-    exitPrice: "108",
-    exitDate: "12/11/24, 04:15pm",
-    pnl: "+325",
+    amount: 250,
+    entryPrice: 95,
+    entryDate: new Date("2024-12-08T14:20:00"),
+    exitPrice: 108,
+    exitDate: new Date("2024-12-11T16:15:00"),
+    pnl: 325,
+    exchange: "Bybit",
+    date: new Date("2024-12-08T14:20:00"),
   },
   {
-    id: 4,
-    type: "buy" as const,
+    id: "4",
+    type: "buy",
     asset: "ETH/USDT",
-    amount: "100",
-    entryPrice: "2100",
-    entryDate: "12/15/24, 05:05am",
-    exitPrice: "2300",
-    exitDate: "12/18/24, 02:30pm",
-    pnl: "+200",
+    amount: 100,
+    entryPrice: 2100,
+    entryDate: new Date("2024-12-15T05:05:00"),
+    exitPrice: 2300,
+    exitDate: new Date("2024-12-18T14:30:00"),
+    pnl: 200,
+    exchange: "Binance",
+    date: new Date("2024-12-15T05:05:00"),
   },
   {
-    id: 5,
-    type: "sell" as const,
+    id: "5",
+    type: "sell",
     asset: "BTC/USDT",
-    amount: "75",
-    entryPrice: "45000",
-    entryDate: "12/10/24, 09:15am",
-    exitPrice: "44200",
-    exitDate: "12/12/24, 11:45am",
-    pnl: "-60",
+    amount: 75,
+    entryPrice: 45000,
+    entryDate: new Date("2024-12-10T09:15:00"),
+    exitPrice: 44200,
+    exitDate: new Date("2024-12-12T11:45:00"),
+    pnl: -60,
+    exchange: "Bybit",
+    date: new Date("2024-12-10T09:15:00"),
   },
   {
-    id: 6,
-    type: "buy" as const,
+    id: "6",
+    type: "buy",
     asset: "SOL/USDT",
-    amount: "250",
-    entryPrice: "95",
-    entryDate: "12/08/24, 02:20pm",
-    exitPrice: "108",
-    exitDate: "12/11/24, 04:15pm",
-    pnl: "+325",
+    amount: 250,
+    entryPrice: 95,
+    entryDate: new Date("2024-12-08T14:20:00"),
+    exitPrice: 108,
+    exitDate: new Date("2024-12-11T16:15:00"),
+    pnl: 325,
+    exchange: "Binance",
+    date: new Date("2024-12-08T14:20:00"),
   },
 ];
 
@@ -194,7 +209,17 @@ const StrategyDetailsPage = () => {
 
   // User's allocated funds state
   const [userAllocatedFunds, setUserAllocatedFunds] = useState<number>(0);
+  const [totalAllocatedFunds, setTotalAllocatedFunds] = useState<number>(0);
+  const [totalByExchange, setTotalByExchange] = useState<{
+    Bybit: number;
+    Binance: number;
+  }>({ Bybit: 0, Binance: 0 });
   const [loadingAllocation, setLoadingAllocation] = useState<boolean>(false);
+
+  // Transaction history state
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loadingTransactions, setLoadingTransactions] =
+    useState<boolean>(false);
 
   // Get the balance for the selected exchange
   const getSelectedExchangeBalance = () => {
@@ -203,12 +228,14 @@ const StrategyDetailsPage = () => {
     return 0;
   };
 
-  // Check if the selected exchange has sufficient balance considering already allocated funds
+  // Check if the selected exchange has sufficient balance considering already allocated funds across ALL strategies
   const hasInsufficientBalance = () => {
     if (!selectedExchange || !amountUSDT) return false;
     const enteredAmount = parseFloat(amountUSDT);
     const availableBalance = getSelectedExchangeBalance();
-    const totalRequiredFunds = userAllocatedFunds + enteredAmount;
+    // Use total allocated funds for the selected exchange across all strategies
+    const exchangeAllocatedFunds = totalByExchange[selectedExchange] || 0;
+    const totalRequiredFunds = exchangeAllocatedFunds + enteredAmount;
     return totalRequiredFunds > availableBalance;
   };
 
@@ -257,17 +284,20 @@ const StrategyDetailsPage = () => {
       if (value && selectedExchange && Number(value) >= minUSDT) {
         const enteredAmount = parseFloat(value);
         const availableBalance = getSelectedExchangeBalance();
-        const totalRequiredFunds = userAllocatedFunds + enteredAmount;
+        // Use total allocated funds for the selected exchange across all strategies
+        const exchangeAllocatedFunds = totalByExchange[selectedExchange] || 0;
+        const totalRequiredFunds = exchangeAllocatedFunds + enteredAmount;
         const hasInsufficientBalance = totalRequiredFunds > availableBalance;
 
         // Debug logging
         console.log("Balance validation:", {
           enteredAmount,
           availableBalance,
-          userAllocatedFunds,
+          exchangeAllocatedFunds,
           totalRequiredFunds,
           hasInsufficientBalance,
           selectedExchange,
+          totalByExchange,
         });
 
         setShowBalanceError(hasInsufficientBalance);
@@ -299,17 +329,20 @@ const StrategyDetailsPage = () => {
           exchange === "Bybit"
             ? parseFloat(bybitBalance)
             : parseFloat(binanceBalance);
-        const totalRequiredFunds = userAllocatedFunds + enteredAmount;
+        // Use total allocated funds for the selected exchange across all strategies
+        const exchangeAllocatedFunds = totalByExchange[exchange] || 0;
+        const totalRequiredFunds = exchangeAllocatedFunds + enteredAmount;
         const hasInsufficientBalance = totalRequiredFunds > availableBalance;
 
         // Debug logging
         console.log("Exchange selection validation:", {
           enteredAmount,
           availableBalance,
-          userAllocatedFunds,
+          exchangeAllocatedFunds,
           totalRequiredFunds,
           hasInsufficientBalance,
           exchange,
+          totalByExchange,
         });
 
         setShowBalanceError(hasInsufficientBalance);
@@ -317,31 +350,83 @@ const StrategyDetailsPage = () => {
     }
   };
 
-  // Fetch user's allocated funds for this strategy
+  // Fetch user's allocated funds for this strategy and total allocation across all strategies
   const fetchUserAllocation = useCallback(async () => {
     if (!address || !isConnected) {
       setUserAllocatedFunds(0);
+      setTotalAllocatedFunds(0);
+      setTotalByExchange({ Bybit: 0, Binance: 0 });
       return;
     }
 
     setLoadingAllocation(true);
     try {
-      const result = await getUserStrategyAllocation({
+      // Fetch total allocation across all strategies
+      const totalResult = await getUserTotalAllocation({
+        walletAddress: address,
+      });
+
+      if (totalResult.success) {
+        setTotalAllocatedFunds(totalResult.totalAllocated || 0);
+        setTotalByExchange(
+          totalResult.totalByExchange || { Bybit: 0, Binance: 0 }
+        );
+      } else {
+        console.error("Error fetching total allocation:", totalResult.message);
+        setTotalAllocatedFunds(0);
+        setTotalByExchange({ Bybit: 0, Binance: 0 });
+      }
+
+      // Fetch allocation for current strategy
+      const strategyResult = await getUserStrategyAllocation({
         walletAddress: address,
         strategyId: strategy.title.toLowerCase().replace(/\s+/g, "-"),
       });
 
-      if (result.success) {
-        setUserAllocatedFunds(result.totalAllocated || 0);
+      if (strategyResult.success) {
+        setUserAllocatedFunds(strategyResult.totalAllocated || 0);
       } else {
-        console.error("Error fetching user allocation:", result.message);
+        console.error(
+          "Error fetching strategy allocation:",
+          strategyResult.message
+        );
         setUserAllocatedFunds(0);
       }
     } catch (error) {
       console.error("Error fetching user allocation:", error);
       setUserAllocatedFunds(0);
+      setTotalAllocatedFunds(0);
+      setTotalByExchange({ Bybit: 0, Binance: 0 });
     } finally {
       setLoadingAllocation(false);
+    }
+  }, [address, isConnected, strategy.title]);
+
+  // Fetch user's transaction history for this strategy
+  const fetchUserTransactions = useCallback(async () => {
+    if (!address || !isConnected) {
+      setTransactions([]);
+      return;
+    }
+
+    setLoadingTransactions(true);
+    try {
+      const result = await getUserStrategyTransactions({
+        walletAddress: address,
+        strategyId: strategy.title.toLowerCase().replace(/\s+/g, "-"),
+      });
+
+      if (result.success) {
+        setTransactions(result.transactions || []);
+      } else {
+        console.error("Error fetching transactions:", result.message);
+        setTransactions([]);
+      }
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      setTransactions([]);
+    } finally {
+      setLoadingTransactions(false);
     }
   }, [address, isConnected, strategy.title]);
 
@@ -506,8 +591,15 @@ const StrategyDetailsPage = () => {
     if (address && isConnected) {
       fetchBalances();
       fetchUserAllocation();
+      fetchUserTransactions();
     }
-  }, [address, isConnected, fetchBalances, fetchUserAllocation]);
+  }, [
+    address,
+    isConnected,
+    fetchBalances,
+    fetchUserAllocation,
+    fetchUserTransactions,
+  ]);
 
   const handleRefreshBalances = () => {
     if (!address || !isConnected) {
@@ -532,19 +624,21 @@ const StrategyDetailsPage = () => {
       return;
     }
 
-    // Check if user has sufficient balance considering already allocated funds
+    // Check if user has sufficient balance considering already allocated funds across ALL strategies
     const enteredAmount = Number(amountUSDT);
     const availableBalance = getSelectedExchangeBalance();
-    const totalRequiredFunds = userAllocatedFunds + enteredAmount;
+    // Use total allocated funds for the selected exchange across all strategies
+    const exchangeAllocatedFunds = totalByExchange[selectedExchange] || 0;
+    const totalRequiredFunds = exchangeAllocatedFunds + enteredAmount;
 
     // Check if total required funds exceed available balance
     if (totalRequiredFunds > availableBalance) {
       const remainingBalance = Math.max(
         0,
-        availableBalance - userAllocatedFunds
+        availableBalance - exchangeAllocatedFunds
       );
       toast.error(
-        `Insufficient balance. You have ${availableBalance} USDT in ${selectedExchange}, with ${userAllocatedFunds} USDT already allocated. Available for allocation: ${remainingBalance.toFixed(
+        `Insufficient balance. You have ${availableBalance} USDT in ${selectedExchange}, with ${exchangeAllocatedFunds} USDT already allocated across all strategies. Available for allocation: ${remainingBalance.toFixed(
           2
         )} USDT`,
         {
@@ -583,6 +677,7 @@ const StrategyDetailsPage = () => {
 
       // Refresh user allocation data
       fetchUserAllocation();
+      fetchUserTransactions();
 
       console.log("Strategy allocated:", result);
     } catch (error) {
@@ -595,409 +690,590 @@ const StrategyDetailsPage = () => {
   };
 
   return (
-    <>
-      <div className="w-full overflow-y-auto scrollbar-hide px-4 md:px-6 lg:px-8 pb-10">
-        {/* Back link */}
-        <div className="flex items-center gap-2 text-[#9B9D9D] text-sm ">
-          <Link href="/strategy" className="hover:underline flex items-center">
-            <Icon
-              className="mr-1"
-              icon={"lets-icons:refund-back-light"}
-              width={16}
-              height={16}
-            />{" "}
-            Back to Strategies
-          </Link>
-        </div>
+    <div className="w-full overflow-y-auto scrollbar-hide px-4 md:px-6 lg:px-8 pb-10">
+      {/* Back link */}
+      <div className="flex items-center gap-2 text-[#9B9D9D] text-sm ">
+        <Link href="/strategy" className="hover:underline flex items-center">
+          <Icon
+            className="mr-1"
+            icon={"lets-icons:refund-back-light"}
+            width={16}
+            height={16}
+          />{" "}
+          Back to Strategies
+        </Link>
+      </div>
 
-        <div className="flex flex-col md:flex-row mt-5 items-center gap-6 lg:h-[200px] justify-between">
-          {/* Left/Main Column */}
-          {/* Header Card */}
-          <div className="bg-[#222223] w-full  flex flex-col md:flex-row items-start justify-between py-4 px-8 border h-full flex-1 border-[#474848] rounded-[16px] ">
-            <div className=" w-full md:w-[40%]">
-              <div className="text-white flex items-start">
-                <h6 className="font-semibold text-lg text-white">
-                  {strategy.title}
-                </h6>
-                <div className="text-xs w-[57px] h-[24px] bg-[#595656]/17 rounded-[35px] p-2.5 flex items-center justify-center text-[#A79EF5] font-semibold ml-4 my-1">
-                  {strategy.category}
-                </div>
-              </div>
-              {strategy.subtitle && (
-                <div className="text-[#9B9D9D] text-xs">
-                  {strategy.subtitle}
-                </div>
-              )}
-              <div className="flex mt-3 items-center">
-                {(Array.isArray(strategy.icon)
-                  ? strategy.icon
-                  : [strategy.icon]
-                ).map((iconSrc: string, idx: number) => (
-                  <div
-                    key={idx}
-                    style={{ zIndex: idx }}
-                    className={idx === 0 ? "relative" : "relative -ml-2.5"}
-                  >
-                    <Image
-                      src={iconSrc}
-                      alt={`${strategy.title} icon ${idx + 1}`}
-                      width={28}
-                      height={28}
-                      className="rounded-full"
-                    />
-                  </div>
-                ))}
-              </div>
-              <div className="flex  mt-3 relative  justify-between items-center">
-                <div className="w-[125px]  md:w-[152px]   p-1 h-[46px] rounded-xl bg-[#1e1f1f] border-[0.5px] border-[#d9d9d9]/40">
-                  <div className="bg-[#303131] flex items-center justify-center w-full h-full rounded-[10px]">
-                    <p className="text-[#ADADAD] text-sm font-medium">
-                      PNL:{" "}
-                      <span className="text-[#06E574] ml-1 text-[16px] font-medium">
-                        23.4%
-                      </span>
-                    </p>
-                  </div>
-                </div>
-                <div className="flex h-[46px]   items-center  gap-4">
-                  <div className="flex     h-full justify-around flex-col">
-                    <p className="text-xs text-[#9B9D9D] ">24h%</p>
-                    <p className="text-xs  relative right-[16px] text-[#06E574] flex items-center">
-                      <Icon
-                        icon={"icon-park-solid:up-one"}
-                        width={16}
-                        height={16}
-                      />
-                      {strategy.pnl}%
-                    </p>
-                  </div>
-                  <div className="flex  h-full justify-around  flex-col">
-                    <p className="text-xs text-[#9B9D9D] ">7d%</p>
-                    <p className="text-xs  relative right-[16px] text-[#FC5050] flex items-center">
-                      <Icon
-                        className="rotate-180"
-                        icon={"icon-park-solid:up-one"}
-                        width={16}
-                        height={16}
-                      />
-                      8.5%
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex mt-3 items-center gap-4">
-                {strategy.riskLevel && (
-                  <div className="text-xs flex items-center text-[#06E574]">
-                    <Icon
-                      icon="material-symbols:info-rounded"
-                      width={16}
-                      className="mr-1"
-                    />
-                    Risk:{" "}
-                    <span className="font-semibold ml-1 text-[10px]">
-                      {strategy.riskLevel}
-                    </span>
-                  </div>
-                )}
-                {strategy.tradeType && (
-                  <div className="text-xs flex items-center text-white">
-                    <Image
-                      src="/icons/casino.svg"
-                      alt="trade type"
-                      width={16}
-                      height={16}
-                      className="mr-1"
-                    />
-                    Trade Type:{" "}
-                    <span className="ml-1 font-semibold">
-                      {strategy.tradeType}
-                    </span>
-                  </div>
-                )}
+      <div className="flex flex-col md:flex-row mt-5 items-center gap-6 lg:h-[200px] justify-between">
+        {/* Left/Main Column */}
+        {/* Header Card */}
+        <div className="bg-[#222223] w-full  flex flex-col md:flex-row items-start justify-between py-4 px-8 border h-full flex-1 border-[#474848] rounded-[16px] ">
+          <div className=" w-full md:w-[40%]">
+            <div className="text-white flex items-start">
+              <h6 className="font-semibold text-lg text-white">
+                {strategy.title}
+              </h6>
+              <div className="text-xs w-[57px] h-[24px] bg-[#595656]/17 rounded-[35px] p-2.5 flex items-center justify-center text-[#A79EF5] font-semibold ml-4 my-1">
+                {strategy.category}
               </div>
             </div>
-            <div className="flex flex-col mt-6 md:mt-0  lg:items-end gap-4">
-              <div className="space-y-3">
-                {/* Total Assets Under Management */}
-                <div>
-                  <p className="text-[#F5F7F7] text-sm">AUM</p>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 md:w-6 md:h-6 relative">
-                      <Image src="/icons/usdt.svg" alt="usdt" fill />
-                    </div>
-                    <h6 className="text-white whitespace-nowrap text-sm md:text-xl font-semibold">
-                      2.4M USDT
-                    </h6>
-                  </div>
-                  {/* <p className="text-[#9B9D9D] text-xs">
-                    Total assets under management
-                  </p> */}
-                </div>
-
-                {/* User's Allocated Funds */}
-                <div>
-                  <p className="text-[#F5F7F7] mt-8 text-sm">Your Allocation</p>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 md:w-6 md:h-6 relative">
-                      <Image src="/icons/usdt.svg" alt="usdt" fill />
-                    </div>
-                    <h6 className="text-white whitespace-nowrap text-sm md:text-lg font-semibold">
-                      {loadingAllocation
-                        ? "Loading..."
-                        : `${userAllocatedFunds.toLocaleString()} USDT`}
-                    </h6>
-                  </div>
-                  {/* <p className="text-[#9B9D9D] text-xs">
-                    Total funds you&apos;ve allocated
-                  </p> */}
-                </div>
-              </div>
-            </div>
-          </div>
-          {/* Right/Sidebar */}
-          <div className="flex bg-[#222223] gap-2.5 w-full md:w-auto min-w-[261px] border h-full  border-[#474848] rounded-[16px] p-2.5 justify-center flex-col">
-            <button
-              onClick={() => setModalTab("Overview")}
-              className="text-left"
-            >
-              <SidebarCard
-                title="Overview"
-                icon="qlementine-icons:key-cmd-16"
-              />
-            </button>
-            <button
-              onClick={() => setModalTab("Activities")}
-              className="text-left"
-            >
-              <SidebarCard
-                title="Activities"
-                icon="hugeicons:computer-activity"
-              />
-            </button>
-            <button
-              onClick={() => setModalTab("Transactions")}
-              className="text-left"
-            >
-              <SidebarCard
-                title="Transactions"
-                icon="mingcute:transfer-horizontal-line"
-              />
-            </button>
-          </div>
-        </div>
-
-        {/* Your Position */}
-        <div className=" mt-10 ">
-          <div className="text-white font-semibold mb-3">Your Position</div>
-
-          <div className="bg-[#222223]  border border-[#474848] rounded-[16px] p-4">
-            <div className="">
-              <div className="flex  flex-col md:flex-row gap-3">
-                <div className="flex-1 flex items-center bg-[#1E1F1F] border-[0.5px] border-[#d9d9d9]/40 rounded-[12px] px-3 h-[52px] min-h-[52px]">
-                  <div className="flex w-[92px] h-[37px] rounded-[10px] bg-[#303131] items-center justify-center gap-2 mr-3">
-                    <Image
-                      src="/icons/usdt.svg"
-                      alt="USDT"
-                      width={26}
-                      height={26}
-                    />
-                    <p className=" text-[#ADADAD]  font-medium ">USDT</p>
-                  </div>
-                  <input
-                    value={amountUSDT}
-                    onChange={handleAmountChange}
-                    type="text"
-                    inputMode="decimal"
-                    pattern="[0-9]*[.]?[0-9]*"
-                    placeholder="Enter Amount"
-                    className="flex-1 appearance-none bg-transparent outline-none text-white placeholder:text-[#9B9D9D]"
+            {strategy.subtitle && (
+              <div className="text-[#9B9D9D] text-xs">{strategy.subtitle}</div>
+            )}
+            <div className="flex mt-3 items-center">
+              {(Array.isArray(strategy.icon)
+                ? strategy.icon
+                : [strategy.icon]
+              ).map((iconSrc: string, idx: number) => (
+                <div
+                  key={idx}
+                  style={{ zIndex: idx }}
+                  className={idx === 0 ? "relative" : "relative -ml-2.5"}
+                >
+                  <Image
+                    src={iconSrc}
+                    alt={`${strategy.title} icon ${idx + 1}`}
+                    width={28}
+                    height={28}
+                    className="rounded-full"
                   />
                 </div>
-                <button
-                  disabled={!canAllocate}
-                  onClick={handleAllocate}
-                  className={`h-[52px] rounded-[12px] px-4 font-semibold transition-colors ${
-                    canAllocate
-                      ? "bg-[#6B5CFF] text-white hover:bg-[#584BFF]"
-                      : "bg-[#3A3B3B] text-[#9B9D9D] cursor-not-allowed"
-                  }`}
-                >
-                  Allocate Funds
-                </button>
+              ))}
+            </div>
+            <div className="flex  mt-3 relative  justify-between items-center">
+              <div className="w-[125px]  md:w-[152px]   p-1 h-[46px] rounded-xl bg-[#1e1f1f] border-[0.5px] border-[#d9d9d9]/40">
+                <div className="bg-[#303131] flex items-center justify-center w-full h-full rounded-[10px]">
+                  <p className="text-[#ADADAD] text-sm font-medium">
+                    PNL:{" "}
+                    <span className="text-[#06E574] ml-1 text-[16px] font-medium">
+                      {strategy.pnl}%
+                    </span>
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                {/* Exchange Balances */}
-                <div className="flex items-center gap-4 mt-2">
-                  {/* Bybit Balance */}
-                  <div
-                    className={`flex items-center gap-2 border rounded-[8px] px-3 py-1.5 cursor-pointer transition-all duration-200 relative ${
-                      selectedExchange === "Bybit"
-                        ? "bg-[#1E1F1F] border-[#06E574]"
-                        : "bg-[#1E1F1F] border-[#3A3B3B] hover:border-[#4A4B4B]"
-                    }`}
-                    onClick={() => handleExchangeSelection("Bybit")}
-                  >
-                    {/* Green selection indicator */}
-                    {selectedExchange === "Bybit" && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#06E574] rounded-full border-2 border-[#222223]"></div>
-                    )}
+              <div className="flex h-[46px]   items-center  gap-4">
+                <div className="flex     h-full justify-around flex-col">
+                  <p className="text-xs text-[#9B9D9D] ">24h%</p>
+                  <p className="text-xs  relative right-[16px] text-[#06E574] flex items-center">
+                    <Icon
+                      icon={"icon-park-solid:up-one"}
+                      width={16}
+                      height={16}
+                    />
+                    {strategy.pnl}%
+                  </p>
+                </div>
+                <div className="flex  h-full justify-around  flex-col">
+                  <p className="text-xs text-[#9B9D9D] ">7d%</p>
+                  <p className="text-xs  relative right-[16px] text-[#FC5050] flex items-center">
+                    <Icon
+                      className="rotate-180"
+                      icon={"icon-park-solid:up-one"}
+                      width={16}
+                      height={16}
+                    />
+                    8.5%
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex mt-3 items-center gap-4">
+              {strategy.riskLevel && (
+                <div
+                  className={`text-xs flex items-center ${getRiskLevelColor(
+                    strategy.riskLevel
+                  )}`}
+                >
+                  <Icon
+                    icon="material-symbols:info-rounded"
+                    width={16}
+                    className="mr-1"
+                  />
+                  Risk:{" "}
+                  <span className="font-semibold ml-1 text-[10px]">
+                    {strategy.riskLevel}
+                  </span>
+                </div>
+              )}
+              {strategy.tradeType && (
+                <div className="text-xs flex items-center text-white">
+                  <Image
+                    src="/icons/casino.svg"
+                    alt="trade type"
+                    width={16}
+                    height={16}
+                    className="mr-1"
+                  />
+                  Trade Type:{" "}
+                  <span className="ml-1 font-semibold">
+                    {strategy.tradeType}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col lg:flex-row gap-3 mt-6 md:mt-0 md:w-[55%]">
+            {/* AUM Card */}
+            <div className="relative flex-1 min-w-[140px] group">
+              <div className="absolute -inset-[1px] bg-gradient-to-r from-[#6B5CFF] via-[#A855F7] to-[#06E574] rounded-[11px] opacity-75 group-hover:opacity-100 animate-pulse"></div>
+              <div className="relative bg-[#1A1B1B] rounded-[10px] p-3 h-full flex flex-col justify-between">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-4 h-4 relative">
+                    <Image src="/icons/usdt.svg" alt="usdt" fill />
+                  </div>
+                  <p className="text-[#9B9D9D] text-xs font-medium">AUM</p>
+                </div>
+                <h6 className="text-white text-sm font-semibold">2.4M USDT</h6>
+                <p className="text-[#6B6C6C] text-[10px] mt-1">Total Assets</p>
+              </div>
+            </div>
+
+            {/* Your Allocation Card */}
+            <div className="relative flex-1 min-w-[140px] group">
+              <div className="absolute -inset-[1px] bg-gradient-to-r from-[#06E574] via-[#00D4FF] to-[#6B5CFF] rounded-[11px] opacity-75 group-hover:opacity-100 animate-gradient-x"></div>
+              <div className="relative bg-[#1A1B1B] rounded-[10px] p-3 h-full flex flex-col justify-between">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-4 h-4 relative">
+                    <Image src="/icons/usdt.svg" alt="usdt" fill />
+                  </div>
+                  <p className="text-[#9B9D9D] text-xs font-medium">
+                    Your Allocation
+                  </p>
+                </div>
+                <h6 className="text-white text-sm font-semibold">
+                  {loadingAllocation
+                    ? "Loading..."
+                    : `${userAllocatedFunds.toLocaleString()} USDT`}
+                </h6>
+                <p className="text-[#6B6C6C] text-[10px] mt-1">
+                  {strategy.title}
+                </p>
+              </div>
+            </div>
+
+            {/* Total Portfolio Card */}
+            <div className="relative flex-1 min-w-[160px] group">
+              <div className="absolute -inset-[1px] bg-gradient-to-r from-[#A855F7] via-[#F59E0B] to-[#EF4444] rounded-[11px] opacity-75 group-hover:opacity-100 animate-gradient-xy"></div>
+              <div className="relative bg-[#1A1B1B] rounded-[10px] p-3 h-full flex flex-col justify-between">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-4 h-4 relative">
+                    <Image src="/icons/usdt.svg" alt="usdt" fill />
+                  </div>
+                  <p className="text-[#9B9D9D] text-xs font-medium">
+                    Total Portfolio
+                  </p>
+                </div>
+                <h6 className="text-white text-sm font-semibold">
+                  {loadingAllocation
+                    ? "Loading..."
+                    : `${totalAllocatedFunds.toLocaleString()} USDT`}
+                </h6>
+                <div className="flex gap-2 mt-1">
+                  <div className="flex items-center gap-1">
                     <Image
                       src="https://assets.coingecko.com/markets/images/698/small/bybit_spot.png"
                       alt="Bybit"
-                      width={16}
-                      height={16}
+                      width={12}
+                      height={12}
                       className="rounded-full"
                     />
-                    <div className="flex flex-col">
-                      <span className="text-[8px] text-[#9B9D9D]">Bybit</span>
-                      <span
-                        className={`text-[10px] font-medium ${
-                          selectedExchange === "Bybit" && showBalanceError
-                            ? "text-[#FC5050]"
-                            : "text-white"
-                        }`}
-                      >
-                        {loadingBalances ? "..." : `${bybitBalance} USDT`}
-                      </span>
-                    </div>
+                    <span className="text-[#6B6C6C] text-[10px]">
+                      {totalByExchange.Bybit.toLocaleString()}
+                    </span>
                   </div>
-
-                  {/* Binance Balance */}
-                  <div
-                    className={`flex items-center gap-2 border rounded-[8px] px-3 py-1.5 cursor-pointer transition-all duration-200 relative ${
-                      selectedExchange === "Binance"
-                        ? "bg-[#1E1F1F] border-[#06E574]"
-                        : "bg-[#1E1F1F] border-[#3A3B3B] hover:border-[#4A4B4B]"
-                    }`}
-                    onClick={() => handleExchangeSelection("Binance")}
-                  >
-                    {/* Green selection indicator */}
-                    {selectedExchange === "Binance" && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#06E574] rounded-full border-2 border-[#222223]"></div>
-                    )}
+                  <div className="flex items-center gap-1">
                     <Image
                       src="https://assets.coingecko.com/markets/images/52/small/binance.jpg"
                       alt="Binance"
-                      width={16}
-                      height={16}
-                      className="rounded-full"
-                    />
-                    <div className="flex flex-col">
-                      <span className="text-[8px] text-[#9B9D9D]">Binance</span>
-                      <span
-                        className={`text-[10px] font-medium ${
-                          selectedExchange === "Binance" && showBalanceError
-                            ? "text-[#FC5050]"
-                            : "text-white"
-                        }`}
-                      >
-                        {loadingBalances ? "..." : `${binanceBalance} USDT`}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Refresh Button */}
-                  <button
-                    onClick={handleRefreshBalances}
-                    disabled={loadingBalances}
-                    className="p-1.5 bg-[#1E1F1F] border border-[#3A3B3B] rounded-[6px] hover:bg-[#262727] cursor-pointer transition-colors disabled:opacity-50"
-                    title={
-                      !isConnected
-                        ? "Connect wallet to refresh balances"
-                        : "Refresh balances"
-                    }
-                  >
-                    <Icon
-                      icon={
-                        loadingBalances
-                          ? "eos-icons:loading"
-                          : "material-symbols:refresh"
-                      }
                       width={12}
                       height={12}
-                      className="text-[#9B9D9D]"
+                      className="rounded-full"
                     />
-                  </button>
-                </div>
-                <div className="text-[10px] text-[#9B9D9D] mt-2">
-                  <span
-                    className={`transition-all duration-200 ${
-                      showExchangeError || showAmountError || showBalanceError
-                        ? "text-[#FC5050]"
-                        : "text-[#9B9D9D]"
-                    }`}
-                  >
-                    {showExchangeError
-                      ? "Kindly select your exchange"
-                      : showAmountError
-                      ? `Minimum of ${minUSDT} USDT is required for this strategy`
-                      : showBalanceError && selectedExchange
-                      ? `Insufficient balance. You have ${getSelectedExchangeBalance()} USDT in ${selectedExchange}, with ${userAllocatedFunds} USDT already allocated. Available: ${Math.max(
-                          0,
-                          getSelectedExchangeBalance() - userAllocatedFunds
-                        ).toFixed(2)} USDT`
-                      : ``}
-                  </span>
+                    <span className="text-[#6B6C6C] text-[10px]">
+                      {totalByExchange.Binance.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-            {/* Transaction History - TODO: Replace with actual data from database */}
-            <div className="mt-4">
-              <div className="text-white font-medium text-sm mb-2">
-                Transaction History
+          </div>
+        </div>
+        {/* Right/Sidebar */}
+        <div className="flex bg-[#222223] gap-2.5 w-full md:w-auto min-w-[261px] border h-full  border-[#474848] rounded-[16px] p-2.5 justify-center flex-col">
+          <button onClick={() => setModalTab("Overview")} className="text-left">
+            <SidebarCard title="Overview" icon="qlementine-icons:key-cmd-16" />
+          </button>
+          <button
+            onClick={() => setModalTab("Activities")}
+            className="text-left"
+          >
+            <SidebarCard
+              title="Activities"
+              icon="hugeicons:computer-activity"
+            />
+          </button>
+          <button
+            onClick={() => setModalTab("Transactions")}
+            className="text-left"
+          >
+            <SidebarCard
+              title="Transactions"
+              icon="mingcute:transfer-horizontal-line"
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* Your Position */}
+      <div className="mt-10">
+        <div className="text-white font-semibold mb-3">Your Position</div>
+
+        <div className="bg-[#222223]  border border-[#474848] rounded-[16px] p-4">
+          <div className="">
+            <div className="flex  flex-col md:flex-row gap-3">
+              <div className="flex-1 flex items-center bg-[#1E1F1F] border-[0.5px] border-[#d9d9d9]/40 rounded-[12px] px-3 h-[52px] min-h-[52px]">
+                <div className="flex w-[92px] h-[37px] rounded-[10px] bg-[#303131] items-center justify-center gap-2 mr-3">
+                  <Image
+                    src="/icons/usdt.svg"
+                    alt="USDT"
+                    width={26}
+                    height={26}
+                  />
+                  <p className=" text-[#ADADAD]  font-medium ">USDT</p>
+                </div>
+                <input
+                  value={amountUSDT}
+                  onChange={handleAmountChange}
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.]?[0-9]*"
+                  placeholder="Enter Amount"
+                  className="flex-1 appearance-none bg-transparent outline-none text-white placeholder:text-[#9B9D9D]"
+                />
               </div>
-              <div className="h-60 lg:h-[18vh] overflow-y-auto scrollbar-thin scrollbar-track-[#1E1F1F] scrollbar-thumb-[#3A3B3B] pr-2">
+              <button
+                disabled={!canAllocate}
+                onClick={handleAllocate}
+                className={`h-[52px] rounded-[12px] px-4 font-semibold transition-colors ${
+                  canAllocate
+                    ? "bg-[#6B5CFF] text-white hover:bg-[#584BFF]"
+                    : "bg-[#3A3B3B] text-[#9B9D9D] cursor-not-allowed"
+                }`}
+              >
+                Allocate Funds
+              </button>
+            </div>
+            <div className="flex items-center justify-between">
+              {/* Exchange Balances */}
+              <div className="flex items-center gap-4 mt-2">
+                {/* Bybit Balance */}
+                <div
+                  className={`flex items-center gap-2 border rounded-[8px] px-3 py-1.5 cursor-pointer transition-all duration-200 relative ${
+                    selectedExchange === "Bybit"
+                      ? "bg-[#1E1F1F] border-[#06E574]"
+                      : "bg-[#1E1F1F] border-[#3A3B3B] hover:border-[#4A4B4B]"
+                  }`}
+                  onClick={() => handleExchangeSelection("Bybit")}
+                >
+                  {/* Green selection indicator */}
+                  {selectedExchange === "Bybit" && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#06E574] rounded-full border-2 border-[#222223]"></div>
+                  )}
+                  <Image
+                    src="https://assets.coingecko.com/markets/images/698/small/bybit_spot.png"
+                    alt="Bybit"
+                    width={16}
+                    height={16}
+                    className="rounded-full"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-[8px] text-[#9B9D9D]">Bybit</span>
+                    <span
+                      className={`text-[10px] font-medium ${
+                        selectedExchange === "Bybit" && showBalanceError
+                          ? "text-[#FC5050]"
+                          : "text-white"
+                      }`}
+                    >
+                      {loadingBalances ? "..." : `${bybitBalance} USDT`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Binance Balance */}
+                <div
+                  className={`flex items-center gap-2 border rounded-[8px] px-3 py-1.5 cursor-pointer transition-all duration-200 relative ${
+                    selectedExchange === "Binance"
+                      ? "bg-[#1E1F1F] border-[#06E574]"
+                      : "bg-[#1E1F1F] border-[#3A3B3B] hover:border-[#4A4B4B]"
+                  }`}
+                  onClick={() => handleExchangeSelection("Binance")}
+                >
+                  {/* Green selection indicator */}
+                  {selectedExchange === "Binance" && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#06E574] rounded-full border-2 border-[#222223]"></div>
+                  )}
+                  <Image
+                    src="https://assets.coingecko.com/markets/images/52/small/binance.jpg"
+                    alt="Binance"
+                    width={16}
+                    height={16}
+                    className="rounded-full"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-[8px] text-[#9B9D9D]">Binance</span>
+                    <span
+                      className={`text-[10px] font-medium ${
+                        selectedExchange === "Binance" && showBalanceError
+                          ? "text-[#FC5050]"
+                          : "text-white"
+                      }`}
+                    >
+                      {loadingBalances ? "..." : `${binanceBalance} USDT`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Refresh Button */}
+                <button
+                  onClick={handleRefreshBalances}
+                  disabled={loadingBalances}
+                  className="p-1.5 bg-[#1E1F1F] border border-[#3A3B3B] rounded-[6px] hover:bg-[#262727] cursor-pointer transition-colors disabled:opacity-50"
+                  title={
+                    !isConnected
+                      ? "Connect wallet to refresh balances"
+                      : "Refresh balances"
+                  }
+                >
+                  <Icon
+                    icon={
+                      loadingBalances
+                        ? "eos-icons:loading"
+                        : "material-symbols:refresh"
+                    }
+                    width={12}
+                    height={12}
+                    className="text-[#9B9D9D]"
+                  />
+                </button>
+              </div>
+              <div className="text-[10px] text-[#9B9D9D] mt-2">
+                <span
+                  className={`transition-all duration-200 ${
+                    showExchangeError || showAmountError || showBalanceError
+                      ? "text-[#FC5050]"
+                      : "text-[#9B9D9D]"
+                  }`}
+                >
+                  {showExchangeError
+                    ? "Kindly select your exchange"
+                    : showAmountError
+                    ? `Minimum of ${minUSDT} USDT is required for this strategy`
+                    : showBalanceError && selectedExchange
+                    ? `Insufficient balance. You have ${getSelectedExchangeBalance()} USDT in ${selectedExchange}, with ${
+                        totalByExchange[selectedExchange] || 0
+                      } USDT already allocated across all strategies. Available: ${Math.max(
+                        0,
+                        getSelectedExchangeBalance() -
+                          (totalByExchange[selectedExchange] || 0)
+                      ).toFixed(2)} USDT`
+                    : ``}
+                </span>
+              </div>
+            </div>
+          </div>
+          {/* Transaction History */}
+          <div className="mt-4">
+            <div className="text-white font-medium text-sm mb-2">
+              Transaction History
+            </div>
+            <div className="h-60 lg:h-[18vh] overflow-y-auto scrollbar-hide pr-2">
+              {/* Live transaction data */}
+              {loadingTransactions ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <div className="w-12 h-12 rounded-full bg-[#1E1F1F] border border-[#3A3B3B] flex items-center justify-center mb-3">
+                    <Icon
+                      icon="eos-icons:loading"
+                      width={20}
+                      height={20}
+                      className="text-[#6B5CFF] animate-spin"
+                    />
+                  </div>
+                  <p className="text-[#9B9D9D] text-sm mb-1">
+                    Loading transactions...
+                  </p>
+                  <p className="text-[#6B6C6C] text-xs">
+                    Fetching your transaction history
+                  </p>
+                </div>
+              ) : transactions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <div className="w-12 h-12 rounded-full bg-[#1E1F1F] border border-[#3A3B3B] flex items-center justify-center mb-3">
+                    <Icon
+                      icon="mingcute:transfer-horizontal-line"
+                      width={20}
+                      height={20}
+                      className="text-[#6B6C6C]"
+                    />
+                  </div>
+                  <p className="text-[#9B9D9D] text-sm mb-1">
+                    No transactions yet
+                  </p>
+                  <p className="text-[#6B6C6C] text-xs">
+                    {userAllocatedFunds === 0
+                      ? "Allocate funds to this strategy to start seeing transaction history"
+                      : "Your transactions will appear here once trading begins"}
+                  </p>
+                </div>
+              ) : (
                 <div className="space-y-3">
-                  {DUMMY_TRANSACTIONS.map((transaction) => (
+                  {transactions.map((transaction) => (
                     <div
                       key={transaction.id}
                       className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2"
                     >
-                      <Metric label="Asset" value={transaction.asset} />
-                      <Metric label="Amount" value={transaction.amount} />
-                      <Metric
-                        label="Entry Price"
-                        value={transaction.entryPrice}
-                        subtitle={transaction.entryDate}
-                      />
-                      <Metric
-                        label="Exit Price"
-                        value={transaction.exitPrice}
-                        subtitle={transaction.exitDate}
-                      />
-                      <Metric
-                        label="Type"
-                        value={transaction.type === "buy" ? "Buy" : "Sell"}
-                        type={transaction.type}
-                      />
-                      <Metric label="PNL" value={transaction.pnl} type="pnl" />
+                      <div className="flex flex-col bg-[#262727] border border-[#3A3B3B] rounded-[8px] px-3 py-2 min-w-[100px]">
+                        <span className="text-[#9B9D9D] text-[10px]">
+                          Asset
+                        </span>
+                        <span className="text-sm font-semibold text-white">
+                          {transaction.asset}
+                        </span>
+                      </div>
+                      <div className="flex flex-col bg-[#262727] border border-[#3A3B3B] rounded-[8px] px-3 py-2 min-w-[100px]">
+                        <span className="text-[#9B9D9D] text-[10px]">
+                          Amount
+                        </span>
+                        <span className="text-sm font-semibold text-white">
+                          {transaction.amount}
+                        </span>
+                      </div>
+                      <div className="flex flex-col bg-[#262727] border border-[#3A3B3B] rounded-[8px] px-3 py-2 min-w-[100px]">
+                        <span className="text-[#9B9D9D] text-[10px]">
+                          Entry Price
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-white">
+                            ${transaction.entryPrice}
+                          </span>
+                          <span className="text-[#9B9D9D] text-[10px]">
+                            {transaction.entryDate.toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col bg-[#262727] border border-[#3A3B3B] rounded-[8px] px-3 py-2 min-w-[100px]">
+                        <span className="text-[#9B9D9D] text-[10px]">
+                          Exit Price
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-white">
+                            ${transaction.exitPrice}
+                          </span>
+                          <span className="text-[#9B9D9D] text-[10px]">
+                            {transaction.exitDate.toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col bg-[#262727] border border-[#3A3B3B] rounded-[8px] px-3 py-2 min-w-[100px]">
+                        <span className="text-[#9B9D9D] text-[10px]">Type</span>
+                        <div className="flex items-center gap-1">
+                          {transaction.type === "buy" && (
+                            <Icon
+                              icon="icon-park-solid:up-one"
+                              width={12}
+                              height={12}
+                              className="text-[#06E574]"
+                            />
+                          )}
+                          {transaction.type === "sell" && (
+                            <Icon
+                              icon="icon-park-solid:up-one"
+                              width={12}
+                              height={12}
+                              className="text-[#FC5050] rotate-180"
+                            />
+                          )}
+                          <span className="text-sm font-semibold text-white">
+                            {transaction.type === "buy" ? "Buy" : "Sell"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col bg-[#262727] border border-[#3A3B3B] rounded-[8px] px-3 py-2 min-w-[100px]">
+                        <span className="text-[#9B9D9D] text-[10px]">PNL</span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-sm font-semibold ${
+                              transaction.pnl > 0
+                                ? "text-[#06E574]"
+                                : transaction.pnl < 0
+                                ? "text-[#FC5050]"
+                                : "text-white"
+                            }`}
+                          >
+                            {transaction.pnl > 0
+                              ? `+$${transaction.pnl.toFixed(2)}`
+                              : `$${transaction.pnl.toFixed(2)}`}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            </div>
+              )}
 
-            {/* Wallet Compatibility */}
-            <div className="mt-6">
-              <div className="text-[#E8BF3D] font-medium text-[18px] mb-1 flex items-center gap-2">
-                <Icon icon="material-symbols:info-rounded" width={24} />
-                Wallet Compatibility
+              {/* Commented out dummy data for testing purposes */}
+              {/* 
+              <div className="space-y-3">
+                {DUMMY_TRANSACTIONS.map((transaction) => (
+                  <div
+                    key={transaction.id}
+                    className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2"
+                  >
+                    <Metric label="Asset" value={transaction.asset} />
+                    <Metric label="Amount" value={transaction.amount} />
+                    <Metric
+                      label="Entry Price"
+                      value={transaction.entryPrice}
+                      subtitle={transaction.entryDate}
+                    />
+                    <Metric
+                      label="Exit Price"
+                      value={transaction.exitPrice}
+                      subtitle={transaction.exitDate}
+                    />
+                    <Metric
+                      label="Type"
+                      value={transaction.type === "buy" ? "Buy" : "Sell"}
+                      type={transaction.type}
+                    />
+                    <Metric label="PNL" value={transaction.pnl} type="pnl" />
+                  </div>
+                ))}
               </div>
-              <p className="text-[#9B9D9D] text-xs">
-                {strategy.compatibility ||
-                  "Compatible with all major wallets including MetaMask, Trust Wallet, and Coinbase Wallet."}
-              </p>
+              */}
             </div>
           </div>
+
+          {/* Wallet Compatibility */}
+          <div className="mt-6">
+            <div className="text-[#E8BF3D] font-medium text-[18px] mb-1 flex items-center gap-2">
+              <Icon icon="material-symbols:info-rounded" width={24} />
+              Wallet Compatibility
+            </div>
+            <p className="text-[#9B9D9D] text-xs">
+              {strategy.compatibility ||
+                "Compatible with all major wallets including MetaMask, Trust Wallet, and Coinbase Wallet."}
+            </p>
+          </div>
         </div>
-        <StrategyOverviewModal
-          isOpen={modalTab !== null}
-          onClose={() => setModalTab(null)}
-          strategy={strategy}
-          initialTab={modalTab || "Overview"}
-        />
       </div>
-    </>
+      <StrategyOverviewModal
+        isOpen={modalTab !== null}
+        onClose={() => setModalTab(null)}
+        strategy={strategy}
+        initialTab={modalTab || "Overview"}
+      />
+    </div>
   );
 };
 

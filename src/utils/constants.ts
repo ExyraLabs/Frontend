@@ -19,23 +19,25 @@ export const STRATS_CARDS: Strategy[] = [
       "https://assets.coingecko.com/markets/images/698/small/bybit_spot.png",
       "https://assets.coingecko.com/markets/images/52/small/binance.jpg",
     ],
-    title: "Extended Creep",
+    title: "Extremes Hunter",
     subtitle: "Positioning at extended RSI levels",
     category: "CEX",
     features: [
       "Identify tokens in the overbought/oversold zones.",
       "Enter positions with reduced risk using RSI.",
     ],
+    notes: ["Strategy focuses on extended RSI levels for entry and exit."],
+
     prompts: [
       // "How can I stake my ETH?",
       "Withdraw all Lido stETH in my wallet - Lido.",
       "Stake $4 worth of ETH for me.",
     ],
     chains: ["Ethereum", "BNB Smart Chain"],
-    tradeType: "Swing",
-    pnl: 12.5,
+    tradeType: "Day",
+    pnl: 4.2,
     apy: 4.2,
-    riskLevel: "Medium",
+    riskLevel: "High",
     tags: ["RSI", "Staking", "DeFi"],
     history: [
       {
@@ -55,7 +57,6 @@ export const STRATS_CARDS: Strategy[] = [
         pnl: 1.52,
       },
     ],
-    notes: "Strategy focuses on extended RSI levels for entry and exit.",
     author: "Jane Doe",
     followers: [] as string[], // Array of wallet addresses following this strategy
     status: "active",
@@ -68,6 +69,76 @@ export const STRATS_CARDS: Strategy[] = [
       "Take Profit at 20%",
       "News coming out",
     ],
+    exchanges: ["Binance", "Bybit"],
+    performanceMetrics: {
+      sharpeRatio: 1.2,
+      winRate: 75,
+      maxDrawdown: 8.5,
+    },
+    fees: {
+      trading: 0.1,
+      management: 0.05,
+    },
+    alerts: [
+      { type: "price", message: "ETH above $3400", triggeredAt: "2025-08-15" },
+      {
+        type: "drawdown",
+        message: "Max drawdown exceeded",
+        triggeredAt: "2025-08-10",
+      },
+    ],
+    visibility: "public",
+    supportedChains: ["Ethereum", "BNB Smart Chain"],
+    compatibility:
+      "This strategy is only supported on Binance and Bybit Exchanges. Please add your api keys and credit your futures account for the best experience.",
+  },
+  {
+    icon: [
+      "https://assets.coingecko.com/markets/images/698/small/bybit_spot.png",
+      "https://assets.coingecko.com/markets/images/52/small/binance.jpg",
+    ],
+    title: "AI Tokens",
+    subtitle: "Purchasing cheap AI tokens.",
+    category: "CEX",
+    features: ["Relatively new ai tokens.", "Market cap under $10m."],
+    notes: ["24h volume over $10m"],
+
+    prompts: [
+      // "How can I stake my ETH?",
+      "Withdraw all Lido stETH in my wallet - Lido.",
+      "Stake $4 worth of ETH for me.",
+    ],
+    chains: ["Ethereum", "BNB Smart Chain"],
+    tradeType: "Swing",
+    pnl: 12.5,
+    apy: 4.2,
+    riskLevel: "Low",
+    tags: ["AI", "New"],
+    history: [
+      {
+        coin: "AGT",
+        entryPrice: 3200,
+        exitPrice: 3400,
+        entryDate: "01/08/25",
+        exitDate: "15/08/25",
+        pnl: 6.25,
+      },
+      {
+        coin: "PARTI",
+        entryPrice: 3300,
+        exitPrice: 3350,
+        entryDate: "10/08/25",
+        exitDate: "20/08/25",
+        pnl: 1.52,
+      },
+    ],
+    author: "Jane Doe",
+    followers: [] as string[], // Array of wallet addresses following this strategy
+    status: "active",
+    startDate: "2025-08-01",
+    endDate: undefined,
+    entryCriterias: ["New Token", "Volume increase > 20%"],
+    exitCriteria: ["Stop loss at -20%", "Take Profit at 100%"],
     exchanges: ["Binance", "Bybit"],
     performanceMetrics: {
       sharpeRatio: 1.2,
@@ -262,6 +333,17 @@ export const socialLinks = [
     icon: "/icons/github.svg",
   },
 ];
+
+// Risk level color mapping
+export const getRiskLevelColor = (riskLevel: string): string => {
+  const riskLevelColors: Record<string, string> = {
+    Low: "text-[#06E574]", // Green
+    Medium: "text-[#F59E0B]", // Orange/Yellow
+    High: "text-[#EF4444]", // Red
+  };
+
+  return riskLevelColors[riskLevel] || "text-[#9B9D9D]"; // Default gray
+};
 
 // Tool icon mapping based on tool name
 export const getToolIcon = (toolName: string): string | null => {

@@ -41,3 +41,30 @@ export interface AgentDetails {
   roomId?: string;
   framework?: "elizaos" | "copilot" | "langgraph" | "crewai";
 }
+
+// Transaction types for strategy trading history
+export type TransactionType = "buy" | "sell";
+
+export interface Transaction {
+  id: number;
+  type: TransactionType;
+  asset: string;
+  amount: string;
+  entryPrice: string;
+  entryDate: string;
+  exitPrice: string;
+  exitDate: string;
+  pnl: string; // Can be "+200", "-60", etc.
+}
+
+// Type for transaction creation (when id might not be set yet)
+export interface CreateTransactionInput {
+  type: TransactionType;
+  asset: string;
+  amount: string;
+  entryPrice: string;
+  entryDate: string;
+  exitPrice: string;
+  exitDate: string;
+  pnl: string;
+}
