@@ -2,7 +2,10 @@
 import clientPromise from "@/lib/mongodb";
 import type { Strategy } from "@/types/strategy";
 import { STRATS_CARDS } from "@/utils/constants";
-import { formatAllocationActivity } from "@/utils/activityFormatter";
+import {
+  formatAllocationActivity,
+  formatWithdrawalActivity,
+} from "@/utils/activityFormatter";
 import { calculateStrategyAUM } from "@/utils/aumCalculator";
 
 // Interface for user strategy data
@@ -28,6 +31,8 @@ interface TradeEntry {
   amount: number;
   entryPrice: number;
   entryDate: Date;
+  qty: number;
+  leverage: number;
   exitPrice: number;
   exitDate: Date;
   pnl: number;
@@ -153,12 +158,6 @@ export async function allocateUserStrategy({
       { upsert: true }
     );
 
-    // Add user to strategy followers if not already following
-    await updateStrategyFollowers({
-      strategyId,
-      walletAddress,
-    });
-
     // Add allocation activity to the strategy
     const allocationActivity = formatAllocationActivity(
       walletAddress,
@@ -178,6 +177,159 @@ export async function allocateUserStrategy({
     return {
       success: false,
       message: "Failed to allocate strategy",
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Deallocate funds from a user strategy
+ */
+export async function deallocateUserStrategy({
+  walletAddress,
+  strategyId,
+  deallocatedFunds,
+}: {
+  walletAddress: string;
+  strategyId: string;
+  deallocatedFunds: number;
+}): Promise<{
+  success: boolean;
+  message: string;
+  remainingAllocation?: number;
+  error?: string;
+}> {
+  try {
+    if (!walletAddress || !strategyId || !deallocatedFunds) {
+      return {
+        success: false,
+        message: "Missing required fields",
+      };
+    }
+
+    if (deallocatedFunds <= 0) {
+      return {
+        success: false,
+        message: "Deallocation amount must be greater than 0",
+      };
+    }
+
+    const client = await clientPromise;
+    const db = client.db();
+    const usersCollection = db.collection("users");
+
+    // Find user and their strategies
+    const user = await usersCollection.findOne({
+      address: walletAddress.toLowerCase(),
+    });
+
+    if (!user || !user.strategies) {
+      return {
+        success: false,
+        message: "User or strategies not found",
+      };
+    }
+
+    // Find strategies for the specific strategyId
+    const userStrategies = user.strategies.filter(
+      (strategy: UserStrategy) => strategy.strategyId === strategyId
+    );
+
+    if (userStrategies.length === 0) {
+      return {
+        success: false,
+        message: "No allocation found for this strategy",
+      };
+    }
+
+    // Calculate total allocated funds for this strategy across all exchanges
+    const totalAllocated = userStrategies.reduce(
+      (sum: number, strategy: UserStrategy) => sum + (strategy.funds || 0),
+      0
+    );
+
+    if (deallocatedFunds > totalAllocated) {
+      return {
+        success: false,
+        message: `Cannot deallocate ${deallocatedFunds} USDT. You only have ${totalAllocated} USDT allocated to this strategy`,
+      };
+    }
+
+    // Remove funds starting from the most recent allocations
+    let remainingToRemove = deallocatedFunds;
+    const strategiesToUpdate = [...userStrategies].reverse(); // Start with most recent
+
+    for (const strategy of strategiesToUpdate) {
+      if (remainingToRemove <= 0) break;
+
+      if (strategy.funds <= remainingToRemove) {
+        // Remove entire strategy allocation
+        await usersCollection.updateOne(
+          { address: walletAddress.toLowerCase() },
+          {
+            $pull: {
+              strategies: {
+                strategyId: strategy.strategyId,
+                selectedExchange: strategy.selectedExchange,
+                dateAllocated: strategy.dateAllocated,
+              },
+              //eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as unknown as any,
+          }
+        );
+        remainingToRemove -= strategy.funds;
+      } else {
+        // Partially reduce this strategy allocation
+        await usersCollection.updateOne(
+          {
+            address: walletAddress.toLowerCase(),
+            "strategies.strategyId": strategy.strategyId,
+            "strategies.selectedExchange": strategy.selectedExchange,
+            "strategies.dateAllocated": strategy.dateAllocated,
+          },
+          {
+            $inc: {
+              "strategies.$.funds": -remainingToRemove,
+            },
+          }
+        );
+        remainingToRemove = 0;
+      }
+    }
+
+    // Calculate remaining allocation after deallocation
+    const updatedUser = await usersCollection.findOne({
+      address: walletAddress.toLowerCase(),
+    });
+    const remainingStrategies =
+      updatedUser?.strategies?.filter(
+        (strategy: UserStrategy) => strategy.strategyId === strategyId
+      ) || [];
+    const remainingAllocation = remainingStrategies.reduce(
+      (sum: number, strategy: UserStrategy) => sum + (strategy.funds || 0),
+      0
+    );
+
+    // Add deallocation activity to the strategy
+    const deallocationActivity = formatWithdrawalActivity(
+      walletAddress,
+      Number(deallocatedFunds)
+    );
+    await addActivityToStrategy({
+      strategyId,
+      activity: deallocationActivity,
+    });
+
+    return {
+      success: true,
+      message: "Funds deallocated successfully",
+      remainingAllocation,
+    };
+  } catch (error) {
+    console.error("Error deallocating strategy:", error);
+    return {
+      success: false,
+      message: "Failed to deallocate strategy",
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
@@ -506,7 +658,7 @@ export async function getUserTotalAllocation({
         message: "No allocations found",
       };
     }
-    console.log(user?.strategies, "strats");
+    // console.log(user?.strategies, "strats");
     // Calculate total allocation across all strategies
     const totalAllocated = user.strategies.reduce(
       (sum: number, strategy: UserStrategy) => sum + (strategy.funds || 0),
@@ -608,7 +760,6 @@ export async function getUserStrategyAllocation({
         message: "No allocations found for this strategy",
       };
     }
-    // console.log(user, "user");
 
     // Filter strategies by strategyId and sum up the funds
     const strategyAllocations = user.strategies.filter(
@@ -795,7 +946,7 @@ export async function addActivityToStrategy({
       { strategyId: strategyId },
       {
         $push: {
-          activities: activity,
+          activities: { message: activity, timestamp: new Date() },
           //eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as unknown as any,
         $set: {

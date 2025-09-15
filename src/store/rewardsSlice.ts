@@ -207,9 +207,6 @@ const initialState: RewardsSliceState = buildInitialState();
 interface DefiActionPayload {
   actionType: RewardTask["actionType"];
 }
-interface SocialActionPayload {
-  platform: RewardTask["socialPlatform"];
-}
 
 export const rewardsSlice = createSlice({
   name: "rewards",
@@ -261,57 +258,12 @@ export const rewardsSlice = createSlice({
         }
       });
     },
-    completeSocialTask(state, action: PayloadAction<SocialActionPayload>) {
-      // Backwards compatible: first complete connect phase, then engage.
-      const connectTask = Object.values(state.tasks).find(
-        (t) =>
-          t.socialPlatform === action.payload.platform &&
-          t.socialPhase === "connect"
-      );
-      const engageTask = Object.values(state.tasks).find(
-        (t) =>
-          t.socialPlatform === action.payload.platform &&
-          t.socialPhase === "engage"
-      );
-      if (connectTask && !connectTask.completed) {
-        connectTask.completed = true;
-        return;
-      }
-      if (engageTask && !engageTask.completed) {
-        engageTask.completed = true;
-      }
-    },
-    completeSocialPhase(
-      state,
-      action: PayloadAction<{ platform: string; phase: "connect" | "engage" }>
-    ) {
-      const task = Object.values(state.tasks).find(
-        (t) =>
-          t.socialPlatform === action.payload.platform &&
-          t.socialPhase === action.payload.phase
-      );
-      if (task && !task.completed) task.completed = true;
-    },
     completeDefiAction(state, action: PayloadAction<DefiActionPayload>) {
       const task = Object.values(state.tasks).find(
         (t) => t.actionType === action.payload.actionType
       );
       if (task && !task.completed) {
         task.completed = true;
-      }
-    },
-    claimTask(state, action: PayloadAction<{ taskId: string }>) {
-      const task = state.tasks[action.payload.taskId];
-      if (!task) return;
-      if (task.completed && !task.claimed) {
-        task.claimed = true;
-        task.completions += 1;
-        state.points += task.points;
-        // If task is repeatable (maxCompletions > completions) allow resetting completion for next round (daily referrals etc.)
-        if (task.maxCompletions && task.completions < task.maxCompletions) {
-          task.completed = false;
-          if (task.target) task.progress = 0;
-        }
       }
     },
     // Utility to hydrate from persisted source later
@@ -330,7 +282,6 @@ export const rewardsSlice = createSlice({
         if (action.payload) {
           // merge persisted minimal structure into runtime tasks
           const persisted = action.payload;
-          state.points = persisted.points ?? state.points;
           // Keep the most recent reset date (avoid regressing to an older persisted value)
           if (persisted.lastResetDate) {
             const current = state.lastResetDate ?? todayISO();
@@ -346,36 +297,6 @@ export const rewardsSlice = createSlice({
               persisted.chatMessageCount
             );
           }
-          Object.entries(persisted.tasks || {}).forEach(([taskId, meta]) => {
-            if (state.tasks[taskId]) {
-              state.tasks[taskId].progress = meta.progress;
-              state.tasks[taskId].completions = meta.completions;
-              state.tasks[taskId].claimed = meta.claimed;
-              // derive completed
-              if (state.tasks[taskId].target) {
-                state.tasks[taskId].completed =
-                  state.tasks[taskId].progress >=
-                  (state.tasks[taskId].target || 0);
-              }
-            }
-          });
-          // Migration: map legacy single-phase social task ids to new engage tasks
-          const legacyMap: Record<string, string> = {
-            "social-x-follow": "social-x-engage",
-            "social-discord-join": "social-discord-engage",
-            "social-telegram-join": "social-telegram-engage",
-          };
-          Object.entries(persisted.tasks || {}).forEach(([legacyId, meta]) => {
-            const newId = legacyMap[legacyId];
-            if (newId && state.tasks[newId]) {
-              // If user had claimed/completed legacy, mirror on new engage task
-              if (meta.claimed || meta.completions > 0) {
-                state.tasks[newId].completed = true;
-                state.tasks[newId].claimed = meta.claimed;
-                state.tasks[newId].completions = meta.completions;
-              }
-            }
-          });
         }
       })
       .addCase(loadRewardsFromDb.rejected, (state, action) => {
@@ -399,10 +320,7 @@ export const rewardsSlice = createSlice({
 export const {
   setWallet,
   recordChatMessage,
-  completeSocialTask,
-  completeSocialPhase,
   completeDefiAction,
-  claimTask,
   checkDailyReset,
   hydrate,
 } = rewardsSlice.actions;
@@ -430,19 +348,8 @@ export const saveRewardsToDb = createAsyncThunk(
       if (!wallet) return;
       // build minimal persisted shape
       const persisted = {
-        points: state.rewards.points,
         lastResetDate: state.rewards.lastResetDate || todayISO(),
         chatMessageCount: state.rewards.chatMessageCount,
-        tasks: Object.fromEntries(
-          Object.entries(state.rewards.tasks).map(([id, t]) => [
-            id,
-            {
-              progress: t.progress,
-              completions: t.completions,
-              claimed: !!t.claimed,
-            },
-          ])
-        ),
       };
       await updateUserRewardsState(wallet, persisted);
     } catch (e: unknown) {

@@ -27,15 +27,18 @@ export async function uploadApiKeys({
     const db = client.db();
     const apiKeysCollection = db.collection("api_keys");
 
+    // Use lowercase address for consistency
+    const normalizedAddress = address.toLowerCase();
+
     // Encrypt the keys before storing
     const encryptedKeys = encryptObject(keys);
 
     // Upsert the keys for the user
     const result = await apiKeysCollection.updateOne(
-      { address },
+      { address: normalizedAddress },
       {
         $set: {
-          address,
+          address: normalizedAddress,
           encryptedKeys,
           updatedAt: new Date(),
         },
@@ -70,10 +73,15 @@ export async function getUserApiKeys(address: string): Promise<{
 }> {
   try {
     const client = await clientPromise;
-    const db = client.db();
+    const db = client.db("");
     const apiKeysCollection = db.collection("api_keys");
 
-    const result = await apiKeysCollection.findOne({ address });
+    // Normalize address to lowercase for consistent querying
+    const normalizedAddress = address.toLowerCase();
+
+    const result = await apiKeysCollection.findOne({
+      address: { $regex: new RegExp(`^${normalizedAddress}$`, "i") },
+    });
 
     if (!result) {
       return {
@@ -114,7 +122,12 @@ export async function deleteUserApiKeys(address: string): Promise<{
     const db = client.db();
     const apiKeysCollection = db.collection("api_keys");
 
-    const result = await apiKeysCollection.deleteOne({ address });
+    // Use lowercase address for consistency
+    const normalizedAddress = address.toLowerCase();
+
+    const result = await apiKeysCollection.deleteOne({
+      address: normalizedAddress,
+    });
 
     return {
       success: true,
@@ -142,8 +155,11 @@ export async function hasStoredApiKeys(address: string): Promise<boolean> {
     const db = client.db();
     const apiKeysCollection = db.collection("api_keys");
 
+    // Use lowercase address for consistency
+    const normalizedAddress = address.toLowerCase();
+
     const result = await apiKeysCollection.findOne(
-      { address },
+      { address: normalizedAddress },
       { projection: { _id: 1 } }
     );
 

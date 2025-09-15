@@ -21,8 +21,12 @@ export const getUserDetails = async (
   if (!wallet || wallet.length < 2) return;
   const client = await clientPromise;
   const db = client.db("Exyra");
+
+  // Use lowercase address for consistency
+  const normalizedAddress = wallet.toLowerCase();
+
   const user = await db.collection("users").findOne(
-    { address: wallet },
+    { address: normalizedAddress },
     {
       projection: {
         _id: 0,
@@ -58,8 +62,12 @@ export const getUserSocial = async (
     if (!wallet) return { ok: false, error: "Missing wallet" };
     const client = await clientPromise;
     const db = client.db("Exyra");
+
+    // Use lowercase address for consistency
+    const normalizedAddress = wallet.toLowerCase();
+
     const user = (await db.collection("users").findOne(
-      { address: wallet },
+      { address: normalizedAddress },
       {
         projection: {
           _id: 0,
@@ -102,22 +110,29 @@ export const authenticateTwitter = async (
 ): Promise<{ ok: boolean; message: string }> => {
   const client = await clientPromise;
   const db = client.db("Exyra");
-  const user = await getUserDetails(address);
+
+  // Use lowercase address for consistency
+  const normalizedAddress = address.toLowerCase();
+
+  const user = await getUserDetails(normalizedAddress);
   if (!user) return { ok: false, message: "Wallet not registered" };
   if (user?.x_id) return { ok: true, message: "Connected" };
+
+  // Check for existing Twitter connections (case-insensitive address comparison)
   const existing = await db.collection("users").findOne({
     $or: [{ x_id: id }, { x_username: username }],
-    address: { $ne: address },
+    address: { $ne: normalizedAddress },
   });
   if (existing)
     return {
       ok: false,
       message: "This Twitter account is already linked to another wallet",
     };
+
   const result = await db
     .collection("users")
     .updateOne(
-      { address: address },
+      { address: normalizedAddress },
       { $set: { x_id: id, x_username: username } },
       { upsert: true }
     );
@@ -133,22 +148,29 @@ export const authenticateDiscord = async (
 ): Promise<{ ok: boolean; message: string }> => {
   const client = await clientPromise;
   const db = client.db("Exyra");
-  const user = await getUserDetails(address);
+
+  // Use lowercase address for consistency
+  const normalizedAddress = address.toLowerCase();
+
+  const user = await getUserDetails(normalizedAddress);
   if (!user) return { ok: false, message: "Wallet not registered" };
   if (user?.discord_id) return { ok: true, message: "Connected" };
+
+  // Check for existing Discord connections (case-insensitive address comparison)
   const existing = await db.collection("users").findOne({
     $or: [{ discord_id: id }, { discord_username: username }],
-    address: { $ne: address },
+    address: { $ne: normalizedAddress },
   });
   if (existing)
     return {
       ok: false,
       message: "This Discord account is already linked to another wallet",
     };
+
   const result = await db
     .collection("users")
     .updateOne(
-      { address: address },
+      { address: normalizedAddress },
       { $set: { discord_id: id, discord_username: username } },
       { upsert: true }
     );
@@ -164,22 +186,29 @@ export const authenticateTelegram = async (
 ): Promise<{ ok: boolean; message: string }> => {
   const client = await clientPromise;
   const db = client.db("Exyra");
-  const user = await getUserDetails(address);
+
+  // Use lowercase address for consistency
+  const normalizedAddress = address.toLowerCase();
+
+  const user = await getUserDetails(normalizedAddress);
   if (!user) return { ok: false, message: "Wallet not registered" };
   if (user?.tg_id) return { ok: true, message: "Connected" };
+
+  // Check for existing Telegram connections (case-insensitive address comparison)
   const existing = await db.collection("users").findOne({
     $or: [{ tg_id: id }, { tg_username: username }],
-    address: { $ne: address },
+    address: { $ne: normalizedAddress },
   });
   if (existing)
     return {
       ok: false,
       message: "This Telegram account is already linked to another wallet",
     };
+
   const result = await db
     .collection("users")
     .updateOne(
-      { address: address },
+      { address: normalizedAddress },
       { $set: { tg_id: id, tg_username: username } },
       { upsert: true }
     );

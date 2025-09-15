@@ -6,7 +6,6 @@ import {
   selectTasksArray,
   selectTierInfo,
   selectPoints,
-  claimTask,
   loadRewardsFromDb,
   setWallet,
   saveRewardsToDb,
@@ -61,7 +60,7 @@ const Explore = () => {
     useAppSelector(selectTierInfo);
   const points = useAppSelector(selectPoints);
   const { address } = useAppKitAccount();
-  const { handleSocialConnected } = useRewardIntegrations(address);
+  // const { handleSocialConnected } = useRewardIntegrations(address);
   const { data: session, status } = useSession();
   const params = useSearchParams();
 
@@ -108,10 +107,10 @@ const Explore = () => {
             if (res.message !== "Connected") {
               toast.success(res.message || "Connected");
             }
-            handleSocialConnected(
-              userSession?.x_id ? "x" : "discord",
-              "connect"
-            );
+            // handleSocialConnected(
+            //   userSession?.x_id ? "x" : "discord",
+            //   "connect"
+            // );
           } else {
             toast.error(res.message || "Connection failed");
           }
@@ -127,7 +126,7 @@ const Explore = () => {
       processAuth();
     }
     return () => undefined;
-  }, [session, status, address, params, handleSocialConnected]);
+  }, [session, status, address, params]);
 
   // Connect helpers
   const startTwitterConnect = () => {
@@ -197,7 +196,6 @@ const Explore = () => {
       });
       const auth = await authenticateTelegram(address, res.id, res.username);
       if (auth.ok) {
-        handleSocialConnected("telegram", "connect");
         toast.success(auth.message || "Telegram connected");
       } else {
         toast.error(auth.message || "Telegram connect failed");

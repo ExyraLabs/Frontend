@@ -2,8 +2,6 @@
 import { useCallback, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../store";
 import {
-  completeSocialTask,
-  completeSocialPhase,
   completeDefiAction,
   setWallet,
   saveRewardsToDb,
@@ -23,26 +21,9 @@ export const useRewardIntegrations = (wallet?: string | null) => {
     }
   }, [wallet, rewards.wallet, dispatch]);
 
-  // Generic sequential handler: call for connect phase first, later call with phase="engage"
-  const handleSocialConnected = useCallback(
-    async (
-      platform: SocialPlatform,
-      phase: "connect" | "engage" = "connect"
-    ) => {
-      if (phase === "connect") {
-        dispatch(completeSocialPhase({ platform, phase: "connect" }));
-      } else {
-        dispatch(completeSocialPhase({ platform, phase: "engage" }));
-      }
-      dispatch(saveRewardsToDb());
-    },
-    [dispatch]
-  );
-
   // Backwards compatibility single-step (deprecated) – still exposed
   const handleLegacySocialComplete = useCallback(
     async (platform: SocialPlatform) => {
-      dispatch(completeSocialTask({ platform }));
       dispatch(saveRewardsToDb());
     },
     [dispatch]
@@ -57,8 +38,6 @@ export const useRewardIntegrations = (wallet?: string | null) => {
   );
 
   return {
-    handleSocialConnected,
-    handleLegacySocialComplete,
     handleDefiAction,
   };
 };

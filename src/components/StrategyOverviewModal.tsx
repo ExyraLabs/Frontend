@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, act } from "react";
 import { Icon } from "@iconify/react";
 import Modal from "./Modal";
 import type { Strategy, TradeHistoryEntry } from "@/types/strategy";
@@ -332,10 +332,10 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
                           </div>
                           <div className="flex-1 flex flex-col">
                             <div className="flex items-center gap-2 text-white text-sm font-medium">
-                              {activity}
+                              {activity.message}
                             </div>
                             <div className="text-[#9B9D9D] text-[10px] mt-1">
-                              Just now
+                              {activity.timestamp.toLocaleString()}
                             </div>
                           </div>
                         </div>
@@ -385,7 +385,6 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
                         </th>
                         <th className="py-3 font-medium">Exit Price</th>
                         <th className="py-3 font-medium">PNL</th>
-                        <th className="py-3 font-medium">Wallet</th>
                       </tr>
                     </thead>
                     <tbody className="text-sm">
@@ -401,32 +400,30 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
                             key={idx}
                             className="border-t border-[#303131] text-[#C7C7C7]"
                           >
-                            <td className="py-3">{trade.coin}</td>
-                            <td className="py-3 hidden md:block">
-                              {trade.entryDate || formatDate()}
+                            <td className="py-3 text-xs">{trade.coin}</td>
+                            <td className="py-3 text-xs hidden md:block">
+                              {new Date(
+                                trade.entryDate || ""
+                              ).toLocaleString() || "-"}
                             </td>
-                            <td className="py-3  items-center gap-1">
+                            <td className="py-3 text-xs  items-center gap-1">
                               {trade.entryPrice.toLocaleString()}
                             </td>
-                            <td className="py-3 hidden md:block">
-                              {trade.exitDate ||
-                                (trade.exitPrice
-                                  ? formatDate()
-                                  : "Ongoing Trade")}
+                            <td className="py-3 text-xs hidden md:block">
+                              {trade.exitDate
+                                ? new Date(trade.exitDate).toLocaleString()
+                                : "-"}
                             </td>
-                            <td className="py-3  items-center gap-1">
-                              {(
-                                trade.exitPrice || trade.entryPrice * 2
-                              ).toLocaleString()}{" "}
+                            <td className="py-3 text-xs  items-center gap-1">
+                              {trade.exitPrice?.toLocaleString() || "-"}
                             </td>
                             <td
-                              className={`py-3 font-medium ${
+                              className={`py-3 text-xs font-medium ${
                                 isLoss ? "text-red-500" : "text-green-400"
                               }`}
                             >
                               {pnlValue ? `${Math.abs(Number(pnlValue))}` : "-"}
                             </td>
-                            <td className="py-3">0x..30</td>
                           </tr>
                         );
                       })}

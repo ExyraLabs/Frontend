@@ -99,11 +99,11 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
       ),
     },
     {
-      name: "Rewards",
+      name: "Trading Bots",
       imgSrc: "/icons/reward.min.svg",
       width: 32,
       height: 32,
-      href: "/strategy",
+      href: "/trade",
       icon: (
         <svg
           width="24"

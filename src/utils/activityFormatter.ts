@@ -30,7 +30,7 @@ export function formatWithdrawalActivity(
   amount: number
 ): string {
   const truncatedAddress = truncateWalletAddress(walletAddress);
-  return `${truncatedAddress} withdrew $${amount}`;
+  return `${truncatedAddress} deallocated $${amount}`;
 }
 
 /**

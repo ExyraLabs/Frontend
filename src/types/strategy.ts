@@ -37,7 +37,7 @@ export interface Strategy {
   followers?: string[]; // Array of wallet addresses
   notes?: string[];
   alerts?: Array<{ type: string; message: string; triggeredAt?: string }>;
-  activities?: string[]; // Array of activity messages
+  activities?: { message: string; timestamp: Date }[]; // Array of activity messages
   visibility?: "public" | "private";
   supportedChains?: string[];
   icons?: string[];

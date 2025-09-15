@@ -21,8 +21,12 @@ export async function logUserAction({
   const client = await clientPromise;
   const db = client.db();
   const statistics = db.collection("statistics");
+
+  // Use lowercase address for consistency
+  const normalizedAddress = address.toLowerCase();
+
   const entry = {
-    address,
+    address: normalizedAddress,
     agent,
     action,
     volume,
@@ -39,12 +43,16 @@ export async function logUserLogin(address: string) {
   const client = await clientPromise;
   const db = client.db();
   const users = db.collection("users");
+
+  // Use lowercase address for consistency
+  const normalizedAddress = address.toLowerCase();
+
   await users.updateOne(
-    { address },
-    { $set: { address, lastLogin: new Date() } },
+    { address: normalizedAddress },
+    { $set: { address: normalizedAddress, lastLogin: new Date() } },
     { upsert: true }
   );
-  return { address };
+  return { address: normalizedAddress };
 }
 
 export async function getAllStatistics() {
@@ -71,8 +79,12 @@ export async function getUserStatistics(address: string) {
   const client = await clientPromise;
   const db = client.db();
   const statistics = db.collection("statistics");
+
+  // Use lowercase address for consistent querying
+  const normalizedAddress = address.toLowerCase();
+
   const results = await statistics
-    .find({ address })
+    .find({ address: normalizedAddress })
     .sort({ timestamp: -1 })
     .toArray();
 
