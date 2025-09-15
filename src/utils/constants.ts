@@ -19,14 +19,14 @@ export const STRATS_CARDS: Strategy[] = [
       "https://assets.coingecko.com/markets/images/698/small/bybit_spot.png",
       "https://assets.coingecko.com/markets/images/52/small/binance.jpg",
     ],
-    title: "Extremes Hunter",
-    subtitle: "Positioning at extended RSI levels",
+    title: "Overly Sold",
+    subtitle: "Sniping low RSI levels",
     category: "CEX",
     features: [
-      "Identify tokens in the overbought/oversold zones.",
+      "Identify tokens in the oversold zones.",
       "Enter positions with reduced risk using RSI.",
     ],
-    notes: ["Strategy focuses on extended RSI levels for entry and exit."],
+    notes: ["Strategy focuses on extended RSI levels for entry."],
 
     prompts: [
       // "How can I stake my ETH?",
@@ -37,7 +37,7 @@ export const STRATS_CARDS: Strategy[] = [
     tradeType: "Day",
     pnl: 4.2,
     apy: 4.2,
-    riskLevel: "High",
+    riskLevel: "Medium",
     tags: ["RSI", "Staking", "DeFi"],
     history: [
       {
@@ -87,6 +87,7 @@ export const STRATS_CARDS: Strategy[] = [
         triggeredAt: "2025-08-10",
       },
     ],
+    activities: [] as string[],
     visibility: "public",
     supportedChains: ["Ethereum", "BNB Smart Chain"],
     compatibility:
@@ -157,6 +158,7 @@ export const STRATS_CARDS: Strategy[] = [
         triggeredAt: "2025-08-10",
       },
     ],
+    activities: [] as string[],
     visibility: "public",
     supportedChains: ["Ethereum", "BNB Smart Chain"],
     compatibility:

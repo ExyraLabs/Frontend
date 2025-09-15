@@ -573,6 +573,21 @@ export interface ExtendedReserve extends Reserve {
 }
 
 /**
+ * Format AUM value for display (e.g., 2400000 -> "2.4M")
+ */
+export function formatAUMValue(value: number): string {
+  if (value >= 1_000_000_000) {
+    return `${(value / 1_000_000_000).toFixed(1)}B`;
+  } else if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(1)}M`;
+  } else if (value >= 1_000) {
+    return `${(value / 1_000).toFixed(1)}K`;
+  } else {
+    return value.toFixed(0);
+  }
+}
+
+/**
  * Utility function to generate user-friendly error messages based on error type
  */
 export function getApiErrorMessage(

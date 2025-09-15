@@ -7,6 +7,7 @@ import { Icon } from "@iconify/react";
 import { useAppKitAccount } from "@reown/appkit/react";
 import toast from "react-hot-toast";
 import { STRATS_CARDS, getRiskLevelColor } from "@/utils/constants";
+import { getStrategyById } from "@/actions/strategies";
 import type { Strategy } from "@/types/strategy";
 import type { Transaction } from "@/types/transaction";
 import StrategyOverviewModal, {
@@ -19,7 +20,9 @@ import {
   getUserStrategyAllocation,
   getUserTotalAllocation,
   getUserStrategyTransactions,
+  getStrategyAUM,
 } from "@/actions/strategies";
+import { formatAUMValue } from "@/lib/utils";
 
 // Type for API error responses
 interface ApiError {
@@ -33,142 +36,6 @@ interface ApiError {
 // Helpers
 const slugify = (s: string) => s.replace(/\s+/g, "-").toLowerCase();
 
-// TODO: Replace with actual data from database
-const DUMMY_TRANSACTIONS: Transaction[] = [
-  {
-    id: "1",
-    type: "buy",
-    asset: "ETH/USDT",
-    amount: 100,
-    entryPrice: 2100,
-    entryDate: new Date("2024-12-15T05:05:00"),
-    exitPrice: 2300,
-    exitDate: new Date("2024-12-18T14:30:00"),
-    pnl: 200,
-    exchange: "Bybit",
-    date: new Date("2024-12-15T05:05:00"),
-  },
-  {
-    id: "2",
-    type: "sell",
-    asset: "BTC/USDT",
-    amount: 75,
-    entryPrice: 45000,
-    entryDate: new Date("2024-12-10T09:15:00"),
-    exitPrice: 44200,
-    exitDate: new Date("2024-12-12T11:45:00"),
-    pnl: -60,
-    exchange: "Binance",
-    date: new Date("2024-12-10T09:15:00"),
-  },
-  {
-    id: "3",
-    type: "buy",
-    asset: "SOL/USDT",
-    amount: 250,
-    entryPrice: 95,
-    entryDate: new Date("2024-12-08T14:20:00"),
-    exitPrice: 108,
-    exitDate: new Date("2024-12-11T16:15:00"),
-    pnl: 325,
-    exchange: "Bybit",
-    date: new Date("2024-12-08T14:20:00"),
-  },
-  {
-    id: "4",
-    type: "buy",
-    asset: "ETH/USDT",
-    amount: 100,
-    entryPrice: 2100,
-    entryDate: new Date("2024-12-15T05:05:00"),
-    exitPrice: 2300,
-    exitDate: new Date("2024-12-18T14:30:00"),
-    pnl: 200,
-    exchange: "Binance",
-    date: new Date("2024-12-15T05:05:00"),
-  },
-  {
-    id: "5",
-    type: "sell",
-    asset: "BTC/USDT",
-    amount: 75,
-    entryPrice: 45000,
-    entryDate: new Date("2024-12-10T09:15:00"),
-    exitPrice: 44200,
-    exitDate: new Date("2024-12-12T11:45:00"),
-    pnl: -60,
-    exchange: "Bybit",
-    date: new Date("2024-12-10T09:15:00"),
-  },
-  {
-    id: "6",
-    type: "buy",
-    asset: "SOL/USDT",
-    amount: 250,
-    entryPrice: 95,
-    entryDate: new Date("2024-12-08T14:20:00"),
-    exitPrice: 108,
-    exitDate: new Date("2024-12-11T16:15:00"),
-    pnl: 325,
-    exchange: "Binance",
-    date: new Date("2024-12-08T14:20:00"),
-  },
-];
-
-const Metric = ({
-  label,
-  value,
-  subtitle,
-  type,
-}: {
-  label: string;
-  value: string;
-  subtitle?: string;
-  type?: "buy" | "sell" | "pnl";
-}) => {
-  const getPNLColor = (val: string) => {
-    if (val.startsWith("+")) return "text-[#06E574]";
-    if (val.startsWith("-")) return "text-[#FC5050]";
-    return "text-white";
-  };
-
-  return (
-    <div className="flex flex-col bg-[#262727] border border-[#3A3B3B] rounded-[8px] px-3 py-2 min-w-[100px]">
-      <span className="text-[#9B9D9D] text-[10px]">{label}</span>
-      <div className="flex items-center gap-1">
-        {type === "buy" && (
-          <Icon
-            icon="icon-park-solid:up-one"
-            width={12}
-            height={12}
-            className="text-[#06E574]"
-          />
-        )}
-        {type === "sell" && (
-          <Icon
-            icon="icon-park-solid:up-one"
-            width={12}
-            height={12}
-            className="text-[#FC5050] rotate-180"
-          />
-        )}
-        <div className="flex items-center gap-2">
-          <span
-            className={`text-sm font-semibold ${
-              type === "pnl" ? getPNLColor(value) : "text-white"
-            }`}
-          >
-            {value}
-          </span>
-          {subtitle && (
-            <span className="text-[#9B9D9D] text-[8px]">{subtitle}</span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const SidebarCard = ({ title, icon }: { title: string; icon?: string }) => (
   <div className="flex items-center px-3 py-2 justify-between bg-[#27292B] border border-[#d9d9d9]/40 rounded-[12px] w-full h-[36px]">
     <span className="text-white text-sm font-medium">{title}</span>
@@ -181,11 +48,41 @@ const SidebarCard = ({ title, icon }: { title: string; icon?: string }) => (
 const StrategyDetailsPage = () => {
   const params = useParams<{ id: string }>();
   const { address, isConnected } = useAppKitAccount();
-  const strategy: Strategy = useMemo(() => {
-    const currentId = (params?.id || "") as string;
+
+  // Strategy state - will be fetched from database
+  const [strategy, setStrategy] = useState<Strategy | null>(null);
+
+  // Fallback strategy from constants for initial render and error cases
+  const fallbackStrategy: Strategy = useMemo(() => {
+    const currentId = params?.id as string;
     const bySlug = STRATS_CARDS.find((s) => slugify(s.title) === currentId);
-    return (bySlug as Strategy) || (STRATS_CARDS[0] as Strategy);
+    return bySlug as Strategy;
   }, [params]);
+
+  // Use the fetched strategy or fallback to constants
+  const currentStrategy = strategy || fallbackStrategy;
+  console.log(currentStrategy);
+
+  // Fetch strategy from database
+  const fetchStrategy = useCallback(async () => {
+    if (!params?.id) return;
+
+    try {
+      // Convert slug back to strategy ID
+      const strategyId = params.id;
+      const result = await getStrategyById(strategyId);
+
+      if (result.success && result.strategy) {
+        setStrategy(result.strategy);
+      } else {
+        console.error("Strategy not found in database, using fallback");
+        // Strategy will remain null, so fallback will be used
+      }
+    } catch (error) {
+      console.error("Error fetching strategy:", error);
+      // Strategy will remain null, so fallback will be used
+    }
+  }, [params?.id]);
 
   // Input state (ETH)
   const [amountUSDT, setAmountUsdt] = useState<string>("");
@@ -220,6 +117,10 @@ const StrategyDetailsPage = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] =
     useState<boolean>(false);
+
+  // AUM (Assets Under Management) state
+  const [strategyAUM, setStrategyAUM] = useState<number>(0);
+  const [loadingAUM, setLoadingAUM] = useState<boolean>(false);
 
   // Get the balance for the selected exchange
   const getSelectedExchangeBalance = () => {
@@ -380,7 +281,7 @@ const StrategyDetailsPage = () => {
       // Fetch allocation for current strategy
       const strategyResult = await getUserStrategyAllocation({
         walletAddress: address,
-        strategyId: strategy.title.toLowerCase().replace(/\s+/g, "-"),
+        strategyId: currentStrategy.title.toLowerCase().replace(/\s+/g, "-"),
       });
 
       if (strategyResult.success) {
@@ -400,7 +301,7 @@ const StrategyDetailsPage = () => {
     } finally {
       setLoadingAllocation(false);
     }
-  }, [address, isConnected, strategy.title]);
+  }, [address, isConnected, currentStrategy.title]);
 
   // Fetch user's transaction history for this strategy
   const fetchUserTransactions = useCallback(async () => {
@@ -413,7 +314,7 @@ const StrategyDetailsPage = () => {
     try {
       const result = await getUserStrategyTransactions({
         walletAddress: address,
-        strategyId: strategy.title.toLowerCase().replace(/\s+/g, "-"),
+        strategyId: currentStrategy.title.toLowerCase().replace(/\s+/g, "-"),
       });
 
       if (result.success) {
@@ -428,7 +329,30 @@ const StrategyDetailsPage = () => {
     } finally {
       setLoadingTransactions(false);
     }
-  }, [address, isConnected, strategy.title]);
+  }, [address, isConnected, currentStrategy.title]);
+
+  // Fetch strategy AUM (Assets Under Management)
+  const fetchStrategyAUM = useCallback(async () => {
+    setLoadingAUM(true);
+    try {
+      const strategyId = currentStrategy.title
+        .toLowerCase()
+        .replace(/\s+/g, "-");
+      const result = await getStrategyAUM(strategyId);
+
+      if (result.success) {
+        setStrategyAUM(result.totalAUM || 0);
+      } else {
+        console.error("Error fetching strategy AUM:", result.message);
+        setStrategyAUM(0);
+      }
+    } catch (error) {
+      console.error("Error fetching strategy AUM:", error);
+      setStrategyAUM(0);
+    } finally {
+      setLoadingAUM(false);
+    }
+  }, [currentStrategy.title]);
 
   // Cache keys for Redis
   const getCacheKey = useCallback(
@@ -588,6 +512,11 @@ const StrategyDetailsPage = () => {
   ); // Add all dependencies
 
   useEffect(() => {
+    fetchStrategy();
+    fetchStrategyAUM(); // Fetch AUM regardless of wallet connection
+  }, [fetchStrategy, fetchStrategyAUM]);
+
+  useEffect(() => {
     if (address && isConnected) {
       fetchBalances();
       fetchUserAllocation();
@@ -653,8 +582,8 @@ const StrategyDetailsPage = () => {
       // Store strategy allocation in database using server action
       const result = await allocateUserStrategy({
         walletAddress: address,
-        strategyId: strategy.title.toLowerCase().replace(/\s+/g, "-"),
-        strategyName: strategy.title,
+        strategyId: currentStrategy.title.toLowerCase().replace(/\s+/g, "-"),
+        strategyName: currentStrategy.title,
         allocatedFunds: Number(amountUSDT),
         selectedExchange: selectedExchange,
       });
@@ -664,7 +593,7 @@ const StrategyDetailsPage = () => {
       }
 
       toast.success(
-        `Successfully allocated ${amountUSDT} USDT to ${strategy.title} on ${selectedExchange}!`,
+        `Successfully allocated ${amountUSDT} USDT to ${currentStrategy.title} on ${selectedExchange}!`,
         {
           duration: 4000,
           position: "top-right",
@@ -678,6 +607,7 @@ const StrategyDetailsPage = () => {
       // Refresh user allocation data
       fetchUserAllocation();
       fetchUserTransactions();
+      fetchStrategyAUM(); // Refresh AUM after successful allocation
 
       console.log("Strategy allocated:", result);
     } catch (error) {
@@ -711,19 +641,21 @@ const StrategyDetailsPage = () => {
           <div className=" w-full md:w-[40%]">
             <div className="text-white flex items-start">
               <h6 className="font-semibold text-lg text-white">
-                {strategy.title}
+                {currentStrategy.title}
               </h6>
               <div className="text-xs w-[57px] h-[24px] bg-[#595656]/17 rounded-[35px] p-2.5 flex items-center justify-center text-[#A79EF5] font-semibold ml-4 my-1">
-                {strategy.category}
+                {currentStrategy.category}
               </div>
             </div>
-            {strategy.subtitle && (
-              <div className="text-[#9B9D9D] text-xs">{strategy.subtitle}</div>
+            {currentStrategy.subtitle && (
+              <div className="text-[#9B9D9D] text-xs">
+                {currentStrategy.subtitle}
+              </div>
             )}
             <div className="flex mt-3 items-center">
-              {(Array.isArray(strategy.icon)
-                ? strategy.icon
-                : [strategy.icon]
+              {(Array.isArray(currentStrategy.icon)
+                ? currentStrategy.icon
+                : [currentStrategy.icon]
               ).map((iconSrc: string, idx: number) => (
                 <div
                   key={idx}
@@ -732,7 +664,7 @@ const StrategyDetailsPage = () => {
                 >
                   <Image
                     src={iconSrc}
-                    alt={`${strategy.title} icon ${idx + 1}`}
+                    alt={`${currentStrategy.title} icon ${idx + 1}`}
                     width={28}
                     height={28}
                     className="rounded-full"
@@ -746,7 +678,7 @@ const StrategyDetailsPage = () => {
                   <p className="text-[#ADADAD] text-sm font-medium">
                     PNL:{" "}
                     <span className="text-[#06E574] ml-1 text-[16px] font-medium">
-                      {strategy.pnl}%
+                      {currentStrategy.pnl}%
                     </span>
                   </p>
                 </div>
@@ -760,7 +692,7 @@ const StrategyDetailsPage = () => {
                       width={16}
                       height={16}
                     />
-                    {strategy.pnl}%
+                    {currentStrategy.pnl}%
                   </p>
                 </div>
                 <div className="flex  h-full justify-around  flex-col">
@@ -778,10 +710,10 @@ const StrategyDetailsPage = () => {
               </div>
             </div>
             <div className="flex mt-3 items-center gap-4">
-              {strategy.riskLevel && (
+              {currentStrategy.riskLevel && (
                 <div
                   className={`text-xs flex items-center ${getRiskLevelColor(
-                    strategy.riskLevel
+                    currentStrategy.riskLevel
                   )}`}
                 >
                   <Icon
@@ -791,11 +723,11 @@ const StrategyDetailsPage = () => {
                   />
                   Risk:{" "}
                   <span className="font-semibold ml-1 text-[10px]">
-                    {strategy.riskLevel}
+                    {currentStrategy.riskLevel}
                   </span>
                 </div>
               )}
-              {strategy.tradeType && (
+              {currentStrategy.tradeType && (
                 <div className="text-xs flex items-center text-white">
                   <Image
                     src="/icons/casino.svg"
@@ -806,7 +738,7 @@ const StrategyDetailsPage = () => {
                   />
                   Trade Type:{" "}
                   <span className="ml-1 font-semibold">
-                    {strategy.tradeType}
+                    {currentStrategy.tradeType}
                   </span>
                 </div>
               )}
@@ -823,7 +755,11 @@ const StrategyDetailsPage = () => {
                   </div>
                   <p className="text-[#9B9D9D] text-xs font-medium">AUM</p>
                 </div>
-                <h6 className="text-white text-sm font-semibold">2.4M USDT</h6>
+                <h6 className="text-white text-sm font-semibold">
+                  {loadingAUM
+                    ? "Loading..."
+                    : `${formatAUMValue(strategyAUM)} USDT`}
+                </h6>
                 <p className="text-[#6B6C6C] text-[10px] mt-1">Total Assets</p>
               </div>
             </div>
@@ -846,7 +782,7 @@ const StrategyDetailsPage = () => {
                     : `${userAllocatedFunds.toLocaleString()} USDT`}
                 </h6>
                 <p className="text-[#6B6C6C] text-[10px] mt-1">
-                  {strategy.title}
+                  {currentStrategy.title}
                 </p>
               </div>
             </div>
@@ -1261,7 +1197,7 @@ const StrategyDetailsPage = () => {
               Wallet Compatibility
             </div>
             <p className="text-[#9B9D9D] text-xs">
-              {strategy.compatibility ||
+              {currentStrategy.compatibility ||
                 "Compatible with all major wallets including MetaMask, Trust Wallet, and Coinbase Wallet."}
             </p>
           </div>
@@ -1270,7 +1206,7 @@ const StrategyDetailsPage = () => {
       <StrategyOverviewModal
         isOpen={modalTab !== null}
         onClose={() => setModalTab(null)}
-        strategy={strategy}
+        strategyId={params?.id || ""}
         initialTab={modalTab || "Overview"}
       />
     </div>

@@ -2,6 +2,8 @@
 import clientPromise from "@/lib/mongodb";
 import type { Strategy } from "@/types/strategy";
 import { STRATS_CARDS } from "@/utils/constants";
+import { formatAllocationActivity } from "@/utils/activityFormatter";
+import { calculateStrategyAUM } from "@/utils/aumCalculator";
 
 // Interface for user strategy data
 interface UserStrategy {
@@ -155,6 +157,16 @@ export async function allocateUserStrategy({
     await updateStrategyFollowers({
       strategyId,
       walletAddress,
+    });
+
+    // Add allocation activity to the strategy
+    const allocationActivity = formatAllocationActivity(
+      walletAddress,
+      Number(allocatedFunds)
+    );
+    await addActivityToStrategy({
+      strategyId,
+      activity: allocationActivity,
     });
 
     return {
@@ -410,10 +422,10 @@ export async function initializeStrategiesCollection(): Promise<{
       history: strategy.history,
       entryCriterias: strategy.entryCriterias,
       exitCriteria: strategy.exitCriteria,
+      pnl: strategy.pnl,
+      apy: strategy.apy,
       performanceMetrics: {
         ...strategy.performanceMetrics,
-        pnl: strategy.pnl,
-        apy: strategy.apy,
       },
       fees: {
         trading: strategy.fees?.trading || 0.1,
@@ -494,7 +506,7 @@ export async function getUserTotalAllocation({
         message: "No allocations found",
       };
     }
-
+    console.log(user?.strategies, "strats");
     // Calculate total allocation across all strategies
     const totalAllocated = user.strategies.reduce(
       (sum: number, strategy: UserStrategy) => sum + (strategy.funds || 0),
@@ -750,4 +762,79 @@ export async function getStrategyById(strategyId: string): Promise<{
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
+}
+
+/**
+ * Add activity to a strategy's activities array
+ */
+export async function addActivityToStrategy({
+  strategyId,
+  activity,
+}: {
+  strategyId: string;
+  activity: string;
+}): Promise<{
+  success: boolean;
+  message: string;
+  error?: string;
+}> {
+  try {
+    if (!strategyId || !activity) {
+      return {
+        success: false,
+        message: "Strategy ID and activity message are required",
+      };
+    }
+
+    const client = await clientPromise;
+    const db = client.db();
+    const strategiesCollection = db.collection("strategies");
+
+    // Add activity to the strategy's activities array
+    const result = await strategiesCollection.updateOne(
+      { strategyId: strategyId },
+      {
+        $push: {
+          activities: activity,
+          //eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as unknown as any,
+        $set: {
+          updatedAt: new Date(),
+        },
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return {
+        success: false,
+        message: "Strategy not found",
+      };
+    }
+
+    return {
+      success: true,
+      message: "Activity added successfully",
+    };
+  } catch (error) {
+    console.error("Error adding activity to strategy:", error);
+    return {
+      success: false,
+      message: "Failed to add activity",
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Get total AUM (Assets Under Management) for a specific strategy
+ * by summing all users' allocated funds for that strategy
+ */
+export async function getStrategyAUM(strategyId: string): Promise<{
+  success: boolean;
+  totalAUM?: number;
+  totalUsers?: number;
+  message: string;
+  error?: string;
+}> {
+  return await calculateStrategyAUM(strategyId);
 }

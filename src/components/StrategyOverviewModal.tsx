@@ -1,13 +1,15 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import Modal from "./Modal";
 import type { Strategy, TradeHistoryEntry } from "@/types/strategy";
+import { getStrategyById } from "@/actions/strategies";
+import { STRATS_CARDS } from "@/utils/constants";
 
 interface StrategyOverviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  strategy: Strategy;
+  strategyId: string;
   initialTab?: TabKey; // which tab to show when opened
 }
 
@@ -33,15 +35,118 @@ const formatDate = (iso?: string) => {
 const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
   isOpen,
   onClose,
-  strategy,
+  strategyId,
   initialTab = "Overview",
 }) => {
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
+  const [strategy, setStrategy] = useState<Strategy | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch strategy data from database or fallback to constants
+  const fetchStrategy = useCallback(async () => {
+    if (!strategyId) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Try to fetch from database first
+      const result = await getStrategyById(strategyId);
+
+      if (result.success && result.strategy) {
+        setStrategy(result.strategy);
+      } else {
+        // Fallback to constants if not found in database
+        const fallbackStrategy = STRATS_CARDS.find(
+          (s) => s.title.toLowerCase().replace(/\s+/g, "-") === strategyId
+        );
+
+        if (fallbackStrategy) {
+          setStrategy(fallbackStrategy);
+        } else {
+          setError("Strategy not found");
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching strategy:", err);
+
+      // Fallback to constants on error
+      const fallbackStrategy = STRATS_CARDS.find(
+        (s) => s.title.toLowerCase().replace(/\s+/g, "-") === strategyId
+      );
+
+      if (fallbackStrategy) {
+        setStrategy(fallbackStrategy);
+      } else {
+        setError("Failed to load strategy data");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [strategyId]);
 
   // Reset active tab whenever modal opens with a different requested tab
   useEffect(() => {
     if (isOpen) setActiveTab(initialTab);
   }, [isOpen, initialTab]);
+
+  // Fetch strategy data when modal opens or strategyId changes
+  useEffect(() => {
+    if (isOpen) {
+      fetchStrategy();
+    }
+  }, [isOpen, fetchStrategy]);
+
+  if (!isOpen) return null;
+
+  if (loading) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <div className="w-[95%] mx-auto lg:w-[1160px] max-w-[1160px] pt-[40px] h-[80vh] md:h-[560px] md:max-h-[560px] overflow-hidden pb-5 md:pb-0 flex flex-col bg-[#303131] rounded-[24px] px-[24px] lg:px-[53px]">
+          <div className="flex items-center justify-center h-full">
+            <div className="flex flex-col items-center gap-4">
+              <Icon
+                icon="eos-icons:loading"
+                width={48}
+                height={48}
+                className="text-[#6B5CFF] animate-spin"
+              />
+              <p className="text-white text-lg">Loading strategy data...</p>
+            </div>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (error || !strategy) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <div className="w-[95%] mx-auto lg:w-[1160px] max-w-[1160px] pt-[40px] h-[80vh] md:h-[560px] md:max-h-[560px] overflow-hidden pb-5 md:pb-0 flex flex-col bg-[#303131] rounded-[24px] px-[24px] lg:px-[53px]">
+          <div className="flex items-center justify-center h-full">
+            <div className="flex flex-col items-center gap-4">
+              <Icon
+                icon="material-symbols:error-outline"
+                width={48}
+                height={48}
+                className="text-[#FC5050]"
+              />
+              <p className="text-white text-lg">
+                {error || "Strategy not found"}
+              </p>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-[#6B5CFF] text-white rounded-lg hover:bg-[#584BFF] transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -201,45 +306,55 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
                 Activities
               </h2>
               <p className="text-white text-sm max-w-[620px] mb-8">
-                Monitor how many traders subscribe to this strategy.
+                Recent activities and user actions for this strategy.
               </p>
-              <div className="bg-[#1E1F1F] md:h-[320px]  rounded-[12px] p-6 flex flex-col gap-6">
+              <div className="bg-[#1E1F1F] md:h-[320px] rounded-[12px] p-6 flex flex-col gap-6">
                 <div className="text-white font-medium mb-4 text-sm">
-                  {strategy.followers?.length || 0} Subscribers
+                  Recent Activities
                 </div>
-                <div className="flex flex-col gap-3  overflow-y-auto pr-2 scrollbar-hide">
-                  {Array.from({
-                    length: Math.min(strategy.followers?.length || 0, 15),
-                  }).map((_, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-start gap-4 bg-[#222223] border border-[#303131] rounded-[12px] px-4 py-3"
-                    >
-                      <div className="w-10 h-10 flex items-center justify-center rounded-[12px] bg-[#303131] text-white text-sm font-semibold">
-                        {idx + 1}
-                      </div>
-                      <div className="flex-1 flex flex-col">
-                        <div className="flex items-center gap-2 text-white text-sm font-medium">
-                          <Icon
-                            icon="tabler:wallet"
-                            width={20}
-                            height={20}
-                            className="text-[#F59E0B]"
-                          />{" "}
-                          0x8A12X...1f7830
+                <div className="flex flex-col gap-3 overflow-y-auto pr-2 scrollbar-hide">
+                  {strategy.activities && strategy.activities.length > 0 ? (
+                    strategy.activities
+                      .slice()
+                      .reverse()
+                      .map((activity, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-start gap-4 bg-[#222223] border border-[#303131] rounded-[12px] px-4 py-3"
+                        >
+                          <div className="w-10 h-10 flex items-center justify-center rounded-[12px] bg-[#303131] text-white text-sm font-semibold">
+                            <Icon
+                              icon="material-symbols:activity-zone"
+                              width={20}
+                              height={20}
+                              className="text-[#06E574]"
+                            />
+                          </div>
+                          <div className="flex-1 flex flex-col">
+                            <div className="flex items-center gap-2 text-white text-sm font-medium">
+                              {activity}
+                            </div>
+                            <div className="text-[#9B9D9D] text-[10px] mt-1">
+                              Just now
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-[#9B9D9D] text-[10px] mt-1">
-                          Started:{" "}
-                          {formatDate(
-                            strategy.startDate || new Date().toISOString()
-                          )}
-                        </div>
+                      ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center py-8">
+                      <Icon
+                        icon="material-symbols:activity-zone-outline"
+                        width={48}
+                        height={48}
+                        className="text-[#3A3B3B] mb-4"
+                      />
+                      <div className="text-[#9B9D9D] text-sm mb-2">
+                        No activities yet
                       </div>
-                    </div>
-                  ))}
-                  {!strategy.followers && (
-                    <div className="text-[#9B9D9D] text-sm">
-                      No activity yet.
+                      <div className="text-[#6B6C6C] text-xs max-w-[250px]">
+                        Activities will appear here when users allocate funds or
+                        perform actions on this strategy
+                      </div>
                     </div>
                   )}
                 </div>

@@ -12,7 +12,7 @@ export const updateUserRewardsState = async (
     const client = await clientPromise;
     const db = client.db("Exyra");
     await db.collection("users").updateOne(
-      { wallet },
+      { address: wallet },
       {
         // Set/replace the rewards sub-document
         $set: {
@@ -21,7 +21,7 @@ export const updateUserRewardsState = async (
         },
         // On first save, ensure we create the user document
         $setOnInsert: {
-          wallet,
+          address: wallet,
           createdAt: new Date(),
         },
       },
@@ -44,7 +44,10 @@ export const getUserRewardsState = async (
     const db = client.db("Exyra");
     const user: { rewards?: RewardsStatePersisted } | null = (await db
       .collection("users")
-      .findOne({ wallet }, { projection: { _id: 0, rewards: 1 } })) as {
+      .findOne(
+        { address: wallet },
+        { projection: { _id: 0, rewards: 1 } }
+      )) as {
       rewards?: RewardsStatePersisted;
     };
     return user?.rewards ?? null;
