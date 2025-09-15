@@ -916,6 +916,44 @@ export async function getStrategyById(strategyId: string): Promise<{
 }
 
 /**
+ * Get all strategies from database
+ */
+export async function getAllStrategies(): Promise<{
+  success: boolean;
+  strategies?: Strategy[];
+  message: string;
+  error?: string;
+}> {
+  try {
+    const client = await clientPromise;
+    const db = client.db();
+    const strategiesCollection = db.collection("strategies");
+
+    const strategies = await strategiesCollection.find({}).toArray();
+
+    // Remove MongoDB _id field and convert to Strategy type
+    const formattedStrategies = strategies.map((strategy) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, ...strategyData } = strategy;
+      return strategyData as Strategy;
+    });
+
+    return {
+      success: true,
+      strategies: formattedStrategies,
+      message: "Strategies retrieved successfully",
+    };
+  } catch (error) {
+    console.error("Error fetching all strategies:", error);
+    return {
+      success: false,
+      message: "Failed to fetch strategies",
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
  * Add activity to a strategy's activities array
  */
 export async function addActivityToStrategy({

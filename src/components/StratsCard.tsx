@@ -2,9 +2,13 @@ import React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { getRiskLevelColor } from "@/utils/constants";
-import { useChatRoomsMessages } from "../hooks/useChatRoomsMessages";
 import { Icon } from "@iconify/react";
 import type { TradeHistoryEntry } from "@/types/strategy";
+import {
+  calculatePnlFromHistory,
+  formatPnlPercentage,
+  getPnlColorClass,
+} from "@/utils/pnlCalculator";
 
 interface StratsCardProps {
   icon: string | string[];
@@ -29,45 +33,14 @@ const StratCard: React.FC<StratsCardProps> = ({
   subtitle,
   category,
   followers,
-  features = [],
-  prompts = [],
-  chains = [],
   tradeType,
-  pnl,
-  apy,
   riskLevel,
   history = [],
-  tags = [],
 }) => {
   const router = useRouter();
-  const { createChatRoom, loadChatRooms } = useChatRoomsMessages();
 
-  // Helper to generate a proper uuid (RFC4122 v4)
-  function generateUUID() {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-      /[xy]/g,
-      function (c) {
-        const r = (Math.random() * 16) | 0;
-        const v = c === "x" ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-      }
-    );
-  }
-
-  const handlePromptClick = (prompt: string) => {
-    let chatId = generateUUID();
-    const chatRooms = loadChatRooms();
-    // Ensure unique chatId
-    while (chatRooms[chatId]) {
-      chatId = generateUUID();
-    }
-
-    // Create empty chat room without any messages
-    createChatRoom(chatId, "");
-
-    // Navigate to chat with prompt as URL parameter
-    router.push(`/chat/${chatId}?prompt=${encodeURIComponent(prompt)}`);
-  };
+  // Calculate PNL data from strategy history
+  const pnlData = calculatePnlFromHistory(history);
 
   return (
     <div className="bg-[#222223] hover:border-white duration-1000 rounded-[16px] p-4 flex flex-col justify-between min-h-[219px] shadow-md border-[0.5px] border-[#303131]">
@@ -177,8 +150,12 @@ const StratCard: React.FC<StratsCardProps> = ({
           <div className="bg-[#303131] flex items-center justify-center w-full h-full rounded-[10px]">
             <p className="text-[#ADADAD] text-sm font-medium">
               PNL:{" "}
-              <span className="text-[#06E574] ml-1 text-[18px] font-medium">
-                {pnl}%
+              <span
+                className={`ml-1 text-[18px] font-medium ${getPnlColorClass(
+                  pnlData.totalPnl
+                )}`}
+              >
+                {formatPnlPercentage(pnlData.totalPnl)}
               </span>
             </p>
           </div>
@@ -186,21 +163,34 @@ const StratCard: React.FC<StratsCardProps> = ({
         <div className="flex items-center gap-4">
           <div className="flex     h-full justify-around flex-col">
             <p className="text-xs text-[#9B9D9D] ">24h%</p>
-            <p className="text-xs  relative right-[16px] text-[#06E574] flex items-center">
-              <Icon icon={"icon-park-solid:up-one"} width={16} height={16} />
-              {pnl}%
+            <p
+              className={`text-xs  relative right-[16px] flex items-center ${getPnlColorClass(
+                pnlData.pnl24h
+              )}`}
+            >
+              <Icon
+                icon={"icon-park-solid:up-one"}
+                width={16}
+                height={16}
+                className={pnlData.pnl24h < 0 ? "rotate-180" : ""}
+              />
+              {formatPnlPercentage(pnlData.pnl24h)}
             </p>
           </div>
           <div className="flex  h-full justify-around flex-col">
             <p className="text-xs text-[#9B9D9D] ">7d%</p>
-            <p className="text-xs  relative right-[16px] text-[#FC5050] flex items-center">
+            <p
+              className={`text-xs  relative right-[16px] flex items-center ${getPnlColorClass(
+                pnlData.pnl7d
+              )}`}
+            >
               <Icon
-                className="rotate-180"
                 icon={"icon-park-solid:up-one"}
                 width={16}
                 height={16}
+                className={pnlData.pnl7d < 0 ? "rotate-180" : ""}
               />
-              8.5%
+              {formatPnlPercentage(pnlData.pnl7d)}
             </p>
           </div>
         </div>

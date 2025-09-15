@@ -1,11 +1,11 @@
 "use client";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
-import AgentCard from "@/components/AgentCard";
-import { chainImageMapping, STRATS_CARDS } from "@/utils/constants";
+import { chainImageMapping } from "@/utils/constants";
 import { useCopilotMessagesContext } from "@copilotkit/react-core";
 import StratCard from "@/components/StratsCard";
 import type { Strategy } from "@/types/strategy";
+import { getAllStrategies } from "@/actions/strategies";
 
 const TABS = [
   "All",
@@ -34,26 +34,47 @@ const Explore = () => {
   const [activeTab, setActiveTab] = useState("All");
   const [selectedChain, setSelectedChain] = useState("All Chains");
   const [showChainDropdown, setShowChainDropdown] = useState(false);
+  const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { setMessages } = useCopilotMessagesContext();
 
-  // Repeat cards to fill the grid as in the screenshot
-  const cards = [...STRATS_CARDS] as Strategy[];
+  // Fetch strategies from database
+  const fetchStrategies = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await getAllStrategies();
 
-  // Filter cards based on active tab and selected chain
-  const filteredCards = cards.filter((card) => {
+      if (result.success && result.strategies) {
+        setStrategies(result.strategies);
+      } else {
+        setError(result.message || "Failed to fetch strategies");
+      }
+    } catch (err) {
+      console.error("Error fetching strategies:", err);
+      setError("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter strategies based on active tab and selected chain
+  const filteredStrategies = strategies.filter((strategy) => {
     // Filter by category/tab
-    const matchesTab = activeTab === "All" || card.category === activeTab;
+    const matchesTab = activeTab === "All" || strategy.category === activeTab;
 
     // Filter by chain
     const matchesChain =
       selectedChain === "All Chains" ||
-      (card.chains && card.chains.includes(selectedChain));
+      (strategy.chains && strategy.chains.includes(selectedChain));
 
     return matchesTab && matchesChain;
   });
 
   useEffect(() => {
     setMessages([]);
+    fetchStrategies();
     //eslint-disable-next-line
   }, []);
 
@@ -188,8 +209,51 @@ const Explore = () => {
 
       {/* Cards grid */}
       <div className="grid grid-cols-1  md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredCards.length > 0 ? (
-          filteredCards.map((card, idx) => <StratCard key={idx} {...card} />)
+        {loading ? (
+          // Loading state
+          <div className="col-span-full text-center py-12">
+            <div className="flex flex-col items-center justify-center">
+              <div className="w-8 h-8 border-4 border-[#6B5CFF] border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-[#99A0AE] text-lg">Loading strategies...</p>
+              <p className="text-[#99A0AE] text-sm mt-2">
+                Fetching the latest trading strategies
+              </p>
+            </div>
+          </div>
+        ) : error ? (
+          // Error state
+          <div className="col-span-full text-center py-12">
+            <div className="flex flex-col items-center justify-center">
+              <div className="w-12 h-12 bg-[#FC5050] rounded-full flex items-center justify-center mb-4">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+              </div>
+              <p className="text-[#FC5050] text-lg">
+                Failed to load strategies
+              </p>
+              <p className="text-[#99A0AE] text-sm mt-2">{error}</p>
+              <button
+                onClick={fetchStrategies}
+                className="mt-4 px-4 py-2 bg-[#6B5CFF] text-white rounded-lg hover:bg-[#584BFF] transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        ) : filteredStrategies.length > 0 ? (
+          filteredStrategies.map((strategy, idx) => (
+            <StratCard key={strategy.title || idx} {...strategy} />
+          ))
         ) : (
           <div className="col-span-full text-center py-12">
             <p className="text-[#99A0AE] text-lg">

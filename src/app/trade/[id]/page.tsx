@@ -24,7 +24,11 @@ import {
   getStrategyAUM,
 } from "@/actions/strategies";
 import { formatAUMValue } from "@/lib/utils";
-import { calculatePnlFromHistory, formatPnlPercentage, getPnlColorClass } from "@/utils/pnlCalculator";
+import {
+  calculatePnlFromHistory,
+  formatPnlPercentage,
+  getPnlColorClass,
+} from "@/utils/pnlCalculator";
 
 // Type for API error responses
 interface ApiError {
@@ -724,7 +728,7 @@ const StrategyDetailsPage = () => {
     <div className="w-full overflow-y-auto scrollbar-hide px-4 md:px-6 lg:px-8 pb-10">
       {/* Back link */}
       <div className="flex items-center gap-2 text-[#9B9D9D] text-sm ">
-        <Link href="/strategy" className="hover:underline flex items-center">
+        <Link href="/trade" className="hover:underline flex items-center">
           <Icon
             className="mr-1"
             icon={"lets-icons:refund-back-light"}
@@ -778,7 +782,11 @@ const StrategyDetailsPage = () => {
                 <div className="bg-[#303131] flex items-center justify-center w-full h-full rounded-[10px]">
                   <p className="text-[#ADADAD] text-sm font-medium">
                     PNL:{" "}
-                    <span className={`ml-1 text-[16px] font-medium ${getPnlColorClass(pnlData.totalPnl)}`}>
+                    <span
+                      className={`ml-1 text-[16px] font-medium ${getPnlColorClass(
+                        pnlData.totalPnl
+                      )}`}
+                    >
                       {formatPnlPercentage(pnlData.totalPnl)}
                     </span>
                   </p>
@@ -787,7 +795,11 @@ const StrategyDetailsPage = () => {
               <div className="flex h-[46px]   items-center  gap-4">
                 <div className="flex     h-full justify-around flex-col">
                   <p className="text-xs text-[#9B9D9D] ">24h%</p>
-                  <p className={`text-xs  relative right-[16px] flex items-center ${getPnlColorClass(pnlData.pnl24h)}`}>
+                  <p
+                    className={`text-xs  relative right-[16px] flex items-center ${getPnlColorClass(
+                      pnlData.pnl24h
+                    )}`}
+                  >
                     <Icon
                       icon={"icon-park-solid:up-one"}
                       width={16}
@@ -799,7 +811,11 @@ const StrategyDetailsPage = () => {
                 </div>
                 <div className="flex  h-full justify-around  flex-col">
                   <p className="text-xs text-[#9B9D9D] ">7d%</p>
-                  <p className={`text-xs  relative right-[16px] flex items-center ${getPnlColorClass(pnlData.pnl7d)}`}>
+                  <p
+                    className={`text-xs  relative right-[16px] flex items-center ${getPnlColorClass(
+                      pnlData.pnl7d
+                    )}`}
+                  >
                     <Icon
                       icon={"icon-park-solid:up-one"}
                       width={16}
