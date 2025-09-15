@@ -1,12 +1,12 @@
 "use client";
-import React, { useMemo, useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useAppKitAccount } from "@reown/appkit/react";
 import toast from "react-hot-toast";
-import { STRATS_CARDS, getRiskLevelColor } from "@/utils/constants";
+import { getRiskLevelColor } from "@/utils/constants";
 import { getStrategyById } from "@/actions/strategies";
 import type { Strategy } from "@/types/strategy";
 import type { Transaction } from "@/types/transaction";
@@ -40,8 +40,6 @@ interface ApiError {
 }
 
 // Helpers
-const slugify = (s: string) => s.replace(/\s+/g, "-").toLowerCase();
-
 const SidebarCard = ({ title, icon }: { title: string; icon?: string }) => (
   <div className="flex items-center px-3 py-2 justify-between bg-[#27292B] border border-[#d9d9d9]/40 rounded-[12px] w-full h-[36px]">
     <span className="text-white text-sm font-medium">{title}</span>
@@ -57,35 +55,40 @@ const StrategyDetailsPage = () => {
 
   // Strategy state - will be fetched from database
   const [strategy, setStrategy] = useState<Strategy | null>(null);
-
-  // Fallback strategy from constants for initial render and error cases
-  const fallbackStrategy: Strategy = useMemo(() => {
-    const currentId = params?.id as string;
-    const bySlug = STRATS_CARDS.find((s) => slugify(s.title) === currentId);
-    return bySlug as Strategy;
-  }, [params]);
-
-  // Use the fetched strategy or fallback to constants
-  const currentStrategy = strategy || fallbackStrategy;
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch strategy from database
   const fetchStrategy = useCallback(async () => {
-    if (!params?.id) return;
+    if (!params?.id) {
+      // No strategy id in params — clear loading so the UI doesn't hang
+      setLoading(false);
+      setError("No strategy id provided");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
 
     try {
       // Convert slug back to strategy ID
       const strategyId = params.id;
       const result = await getStrategyById(strategyId);
+      console.log(result, "res");
 
       if (result.success && result.strategy) {
         setStrategy(result.strategy);
+        setLoading(false);
       } else {
-        console.error("Strategy not found in database, using fallback");
-        // Strategy will remain null, so fallback will be used
+        setError(result.message || "Strategy not found");
+        setLoading(false);
       }
     } catch (error) {
-      console.error("Error fetching strategy:", error);
-      // Strategy will remain null, so fallback will be used
+      console.error("Error fetching strategy from database:", error);
+      setError("Failed to load strategy data");
+      setLoading(false);
+    } finally {
+      setLoading(false);
     }
   }, [params?.id]);
 
@@ -133,8 +136,14 @@ const StrategyDetailsPage = () => {
   const [showAmountErrorDeallocation, setShowAmountErrorDeallocation] =
     useState<boolean>(false);
 
-  // Calculate PNL data from strategy history
-  const pnlData = calculatePnlFromHistory(currentStrategy?.history || []);
+  // Calculate PNL data from strategy history if strategy exists
+  const pnlData = strategy
+    ? calculatePnlFromHistory(strategy.history || [])
+    : {
+        totalPnl: 0,
+        pnl24h: 0,
+        pnl7d: 0,
+      };
 
   // Get the balance for the selected exchange
   const getSelectedExchangeBalance = () => {
@@ -297,7 +306,7 @@ const StrategyDetailsPage = () => {
 
   // Fetch user's allocated funds for this strategy and total allocation across all strategies
   const fetchUserAllocation = useCallback(async () => {
-    if (!address || !isConnected) {
+    if (!address || !isConnected || !strategy) {
       setUserAllocatedFunds(0);
       setTotalAllocatedFunds(0);
       setTotalByExchange({ Bybit: 0, Binance: 0 });
@@ -325,7 +334,7 @@ const StrategyDetailsPage = () => {
       // Fetch allocation for current strategy
       const strategyResult = await getUserStrategyAllocation({
         walletAddress: address,
-        strategyId: currentStrategy.title.toLowerCase().replace(/\s+/g, "-"),
+        strategyId: strategy.title.toLowerCase().replace(/\s+/g, "-"),
       });
 
       if (strategyResult.success) {
@@ -345,11 +354,11 @@ const StrategyDetailsPage = () => {
     } finally {
       setLoadingAllocation(false);
     }
-  }, [address, isConnected, currentStrategy.title]);
+  }, [address, isConnected, strategy]);
 
   // Fetch user's transaction history for this strategy
   const fetchUserTransactions = useCallback(async () => {
-    if (!address || !isConnected) {
+    if (!address || !isConnected || !strategy) {
       setTransactions([]);
       return;
     }
@@ -358,7 +367,7 @@ const StrategyDetailsPage = () => {
     try {
       const result = await getUserStrategyTransactions({
         walletAddress: address,
-        strategyId: currentStrategy.title.toLowerCase().replace(/\s+/g, "-"),
+        strategyId: strategy.title.toLowerCase().replace(/\s+/g, "-"),
       });
 
       if (result.success) {
@@ -373,15 +382,18 @@ const StrategyDetailsPage = () => {
     } finally {
       setLoadingTransactions(false);
     }
-  }, [address, isConnected, currentStrategy.title]);
+  }, [address, isConnected, strategy]);
 
   // Fetch strategy AUM (Assets Under Management)
   const fetchStrategyAUM = useCallback(async () => {
+    if (!strategy) {
+      setStrategyAUM(0);
+      return;
+    }
+
     setLoadingAUM(true);
     try {
-      const strategyId = currentStrategy.title
-        .toLowerCase()
-        .replace(/\s+/g, "-");
+      const strategyId = strategy.title.toLowerCase().replace(/\s+/g, "-");
       const result = await getStrategyAUM(strategyId);
 
       if (result.success) {
@@ -396,7 +408,7 @@ const StrategyDetailsPage = () => {
     } finally {
       setLoadingAUM(false);
     }
-  }, [currentStrategy.title]);
+  }, [strategy]);
 
   // Cache keys for Redis
   const getCacheKey = useCallback(
@@ -558,7 +570,7 @@ const StrategyDetailsPage = () => {
   useEffect(() => {
     fetchStrategy();
     fetchStrategyAUM(); // Fetch AUM regardless of wallet connection
-  }, [fetchStrategy, fetchStrategyAUM]);
+  }, []);
 
   useEffect(() => {
     if (address && isConnected) {
@@ -586,7 +598,12 @@ const StrategyDetailsPage = () => {
   };
 
   const handleAllocate = async () => {
-    if (!address || !selectedExchange || Number(amountUSDT) < minUSDT) {
+    if (
+      !address ||
+      !selectedExchange ||
+      Number(amountUSDT) < minUSDT ||
+      !strategy
+    ) {
       toast.error(
         "Please connect wallet, select an exchange, and enter a valid amount",
         {
@@ -626,8 +643,8 @@ const StrategyDetailsPage = () => {
       // Store strategy allocation in database using server action
       const result = await allocateUserStrategy({
         walletAddress: address,
-        strategyId: currentStrategy.title.toLowerCase().replace(/\s+/g, "-"),
-        strategyName: currentStrategy.title,
+        strategyId: strategy.title.toLowerCase().replace(/\s+/g, "-"),
+        strategyName: strategy.title,
         allocatedFunds: Number(amountUSDT),
         selectedExchange: selectedExchange,
       });
@@ -637,7 +654,7 @@ const StrategyDetailsPage = () => {
       }
 
       toast.success(
-        `Successfully allocated ${amountUSDT} USDT to ${currentStrategy.title} on ${selectedExchange}!`,
+        `Successfully allocated ${amountUSDT} USDT to ${strategy.title} on ${selectedExchange}!`,
         {
           duration: 4000,
           position: "top-right",
@@ -664,7 +681,7 @@ const StrategyDetailsPage = () => {
   };
 
   const handleDeallocate = async () => {
-    if (!address || Number(amountUSDTDeallocation) <= 0) {
+    if (!address || Number(amountUSDTDeallocation) <= 0 || !strategy) {
       toast.error("Please connect wallet and enter a valid amount", {
         duration: 3000,
         position: "top-right",
@@ -690,7 +707,7 @@ const StrategyDetailsPage = () => {
       // Deallocate strategy funds using server action
       const result = await deallocateUserStrategy({
         walletAddress: address,
-        strategyId: currentStrategy.title.toLowerCase().replace(/\s+/g, "-"),
+        strategyId: strategy.title.toLowerCase().replace(/\s+/g, "-"),
         deallocatedFunds: Number(amountUSDTDeallocation),
       });
 
@@ -699,7 +716,7 @@ const StrategyDetailsPage = () => {
       }
 
       toast.success(
-        `Successfully deallocated ${amountUSDTDeallocation} USDT from ${currentStrategy.title}!`,
+        `Successfully deallocated ${amountUSDTDeallocation} USDT from ${strategy.title}!`,
         {
           duration: 4000,
           position: "top-right",
@@ -724,6 +741,73 @@ const StrategyDetailsPage = () => {
     }
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="w-full overflow-y-auto scrollbar-hide px-4 md:px-6 lg:px-8 pb-10">
+        <div className="flex items-center gap-2 text-[#9B9D9D] text-sm mb-4">
+          <Link href="/trade" className="hover:underline flex items-center">
+            <Icon
+              className="mr-1"
+              icon={"lets-icons:refund-back-light"}
+              width={16}
+              height={16}
+            />{" "}
+            Back to Strategies
+          </Link>
+        </div>
+        <div className="flex items-center justify-center h-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-[#6B5CFF] border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-white text-lg">Loading strategy...</p>
+            <p className="text-[#9B9D9D] text-sm">Fetching strategy details</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !strategy) {
+    return (
+      <div className="w-full overflow-y-auto scrollbar-hide px-4 md:px-6 lg:px-8 pb-10">
+        <div className="flex items-center gap-2 text-[#9B9D9D] text-sm mb-4">
+          <Link href="/trade" className="hover:underline flex items-center">
+            <Icon
+              className="mr-1"
+              icon={"lets-icons:refund-back-light"}
+              width={16}
+              height={16}
+            />{" "}
+            Back to Strategies
+          </Link>
+        </div>
+        <div className="flex items-center justify-center h-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 bg-[#FC5050] rounded-full flex items-center justify-center">
+              <Icon
+                icon="material-symbols:error-outline"
+                width={24}
+                height={24}
+                className="text-white"
+              />
+            </div>
+            <p className="text-[#FC5050] text-lg">Strategy not found</p>
+            <p className="text-[#9B9D9D] text-sm">
+              {error || "The requested strategy could not be found"}
+            </p>
+            <button
+              onClick={fetchStrategy}
+              className="mt-4 px-4 py-2 bg-[#6B5CFF] text-white rounded-lg hover:bg-[#584BFF] transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full overflow-y-auto scrollbar-hide px-4 md:px-6 lg:px-8 pb-10">
       {/* Back link */}
@@ -746,21 +830,19 @@ const StrategyDetailsPage = () => {
           <div className=" w-full md:w-[40%]">
             <div className="text-white flex items-start">
               <h6 className="font-semibold text-lg text-white">
-                {currentStrategy.title}
+                {strategy.title}
               </h6>
               <div className="text-xs w-[57px] h-[24px] bg-[#595656]/17 rounded-[35px] p-2.5 flex items-center justify-center text-[#A79EF5] font-semibold ml-4 my-1">
-                {currentStrategy.category}
+                {strategy.category}
               </div>
             </div>
-            {currentStrategy.subtitle && (
-              <div className="text-[#9B9D9D] text-xs">
-                {currentStrategy.subtitle}
-              </div>
+            {strategy.subtitle && (
+              <div className="text-[#9B9D9D] text-xs">{strategy.subtitle}</div>
             )}
             <div className="flex mt-3 items-center">
-              {(Array.isArray(currentStrategy.icon)
-                ? currentStrategy.icon
-                : [currentStrategy.icon]
+              {(Array.isArray(strategy.icon)
+                ? strategy.icon
+                : [strategy.icon]
               ).map((iconSrc: string, idx: number) => (
                 <div
                   key={idx}
@@ -769,7 +851,7 @@ const StrategyDetailsPage = () => {
                 >
                   <Image
                     src={iconSrc}
-                    alt={`${currentStrategy.title} icon ${idx + 1}`}
+                    alt={`${strategy.title} icon ${idx + 1}`}
                     width={28}
                     height={28}
                     className="rounded-full"
@@ -828,10 +910,10 @@ const StrategyDetailsPage = () => {
               </div>
             </div>
             <div className="flex mt-3 items-center gap-4">
-              {currentStrategy.riskLevel && (
+              {strategy.riskLevel && (
                 <div
                   className={`text-xs flex items-center ${getRiskLevelColor(
-                    currentStrategy.riskLevel
+                    strategy.riskLevel
                   )}`}
                 >
                   <Icon
@@ -841,11 +923,11 @@ const StrategyDetailsPage = () => {
                   />
                   Risk:{" "}
                   <span className="font-semibold ml-1 text-[10px]">
-                    {currentStrategy.riskLevel}
+                    {strategy.riskLevel}
                   </span>
                 </div>
               )}
-              {currentStrategy.tradeType && (
+              {strategy.tradeType && (
                 <div className="text-xs flex items-center text-white">
                   <Image
                     src="/icons/casino.svg"
@@ -856,7 +938,7 @@ const StrategyDetailsPage = () => {
                   />
                   Trade Type:{" "}
                   <span className="ml-1 font-semibold">
-                    {currentStrategy.tradeType}
+                    {strategy.tradeType}
                   </span>
                 </div>
               )}
@@ -900,7 +982,7 @@ const StrategyDetailsPage = () => {
                     : `${userAllocatedFunds.toLocaleString()} USDT`}
                 </h6>
                 <p className="text-[#6B6C6C] text-[10px] mt-1">
-                  {currentStrategy.title}
+                  {strategy.title}
                 </p>
               </div>
             </div>
@@ -1373,7 +1455,7 @@ const StrategyDetailsPage = () => {
               Wallet Compatibility
             </div>
             <p className="text-[#9B9D9D] text-xs">
-              {currentStrategy.compatibility ||
+              {strategy.compatibility ||
                 "Compatible with all major wallets including MetaMask, Trust Wallet, and Coinbase Wallet."}
             </p>
           </div>

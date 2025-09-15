@@ -48,12 +48,15 @@ const Explore = () => {
 
       if (result.success && result.strategies) {
         setStrategies(result.strategies);
+        setLoading(false);
       } else {
         setError(result.message || "Failed to fetch strategies");
+        setLoading(false);
       }
     } catch (err) {
       console.error("Error fetching strategies:", err);
       setError("An unexpected error occurred");
+      setLoading(false);
     } finally {
       setLoading(false);
     }

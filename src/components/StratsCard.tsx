@@ -82,7 +82,7 @@ const StratCard: React.FC<StratsCardProps> = ({
                 className="hover:underline cursor-pointer text-left"
                 onClick={() =>
                   router.push(
-                    `/strategy/${title.replace(/\s+/g, "-").toLowerCase()}`
+                    `/trade/${title.replace(/\s+/g, "-").toLowerCase()}`
                   )
                 }
               >

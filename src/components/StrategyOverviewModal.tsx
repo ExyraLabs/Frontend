@@ -1,10 +1,9 @@
 "use client";
-import React, { useState, useEffect, useCallback, act } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import Modal from "./Modal";
 import type { Strategy, TradeHistoryEntry } from "@/types/strategy";
 import { getStrategyById } from "@/actions/strategies";
-import { STRATS_CARDS } from "@/utils/constants";
 
 interface StrategyOverviewModalProps {
   isOpen: boolean;
@@ -17,21 +16,6 @@ export type TabKey = "Overview" | "Activities" | "Transactions";
 
 const TABS: TabKey[] = ["Overview", "Activities", "Transactions"];
 
-// Utility formatting helpers (simple for now, can be extracted later)
-const formatDate = (iso?: string) => {
-  if (!iso) return "-";
-  try {
-    const d = new Date(iso);
-    return d.toLocaleDateString(undefined, {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-};
-
 const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
   isOpen,
   onClose,
@@ -43,7 +27,7 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch strategy data from database or fallback to constants
+  // Fetch strategy data from database
   const fetchStrategy = useCallback(async () => {
     if (!strategyId) return;
 
@@ -51,36 +35,17 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
     setError(null);
 
     try {
-      // Try to fetch from database first
+      // Fetch from database
       const result = await getStrategyById(strategyId);
 
       if (result.success && result.strategy) {
         setStrategy(result.strategy);
       } else {
-        // Fallback to constants if not found in database
-        const fallbackStrategy = STRATS_CARDS.find(
-          (s) => s.title.toLowerCase().replace(/\s+/g, "-") === strategyId
-        );
-
-        if (fallbackStrategy) {
-          setStrategy(fallbackStrategy);
-        } else {
-          setError("Strategy not found");
-        }
+        setError(result.message || "Strategy not found");
       }
     } catch (err) {
       console.error("Error fetching strategy:", err);
-
-      // Fallback to constants on error
-      const fallbackStrategy = STRATS_CARDS.find(
-        (s) => s.title.toLowerCase().replace(/\s+/g, "-") === strategyId
-      );
-
-      if (fallbackStrategy) {
-        setStrategy(fallbackStrategy);
-      } else {
-        setError("Failed to load strategy data");
-      }
+      setError("Failed to load strategy data");
     } finally {
       setLoading(false);
     }
