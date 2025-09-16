@@ -9,6 +9,7 @@ import {
   changeLeverage,
   getPositionInfo,
 } from "./wallet";
+import { calculateTPSL } from "../utils/trade";
 
 export default function Binance() {
   const { address } = useAppKitAccount();
@@ -67,259 +68,292 @@ export default function Binance() {
     },
   });
 
-  // useCopilotAction({
-  //   name: "CreateOrder_Binance",
-  //   description:
-  //     "Create a comprehensive trading order on Binance Futures exchange. This action supports market orders with advanced features including leverage up to 125x, take profit, and stop loss. Ideal for executing professional trading strategies with precise risk management. Requires Binance API keys to be configured in user settings.",
-  //   parameters: [
-  //     {
-  //       name: "symbol",
-  //       type: "string",
-  //       description:
-  //         "Trading pair symbol in uppercase format. Examples: 'BTCUSDT' for Bitcoin, 'ETHUSDT' for Ethereum, 'BNBUSDT' for Binance Coin. Always use USDT pairs for futures trading on Binance.",
-  //       required: true,
-  //     },
-  //     {
-  //       name: "side",
-  //       type: "string",
-  //       description:
-  //         "Order direction - 'BUY' for long positions (expecting price to rise) or 'SELL' for short positions (expecting price to fall). Case sensitive: use 'BUY' or 'SELL' exactly in uppercase.",
-  //       required: true,
-  //     },
-  //     {
-  //       name: "amount",
-  //       type: "string",
-  //       description:
-  //         "Amount in USDT to invest in this trade. This will be used to calculate the actual position size based on current price and leverage. Examples: '100' for $100 investment, '1000' for $1000 investment. Minimum usually $10-20 depending on symbol.",
-  //       required: true,
-  //     },
-  //     {
-  //       name: "leverage",
-  //       type: "number",
-  //       description:
-  //         "Leverage multiplier from 1 to 125. Higher leverage amplifies both profits and losses. Examples: 1 = no leverage, 10 = 10x leverage, 50 = 50x leverage. Use lower leverage (1-10x) for safer trading.",
-  //       required: false,
-  //     },
-  //     {
-  //       name: "takeProfitPrice",
-  //       type: "string",
-  //       description:
-  //         "Exact price level to automatically close the position for profit. For BUY orders: set above current price. For SELL orders: set below current price. Example: if BTC is $50000 and you BUY, set TP at $52000.",
-  //       required: false,
-  //     },
-  //     {
-  //       name: "stopLossPrice",
-  //       type: "string",
-  //       description:
-  //         "Exact price level to automatically close the position to limit losses. For BUY orders: set below current price. For SELL orders: set above current price. Example: if BTC is $50000 and you BUY, set SL at $48000.",
-  //       required: false,
-  //     },
-  //     {
-  //       name: "takeProfitPercent",
-  //       type: "number",
-  //       description:
-  //         "Alternative to takeProfitPrice: profit target as percentage. Examples: 3 = 3% profit, 7 = 7% profit. Will calculate exact price automatically based on current market price.",
-  //       required: false,
-  //     },
-  //     {
-  //       name: "stopLossPercent",
-  //       type: "number",
-  //       description:
-  //         "Alternative to stopLossPrice: loss limit as percentage. Examples: 2 = 2% loss, 4 = 4% loss. Will calculate exact price automatically based on current market price.",
-  //       required: false,
-  //     },
-  //   ],
-  //   handler: async ({
-  //     symbol,
-  //     side,
-  //     amount,
-  //     leverage,
-  //     takeProfitPrice,
-  //     stopLossPrice,
-  //     takeProfitPercent,
-  //     stopLossPercent,
-  //   }) => {
-  //     try {
-  //       console.log(`[CreateOrder_Binance] Creating enhanced order:`, {
-  //         symbol,
-  //         side,
-  //         amount,
-  //         leverage,
-  //         takeProfitPrice,
-  //         stopLossPrice,
-  //         takeProfitPercent,
-  //         stopLossPercent,
-  //       });
+  useCopilotAction({
+    name: "CreateOrder_Binance",
+    description:
+      "Create a comprehensive trading order on Binance Futures exchange. This action supports market orders with advanced features including leverage up to 125x, take profit, and stop loss. Ideal for executing professional trading strategies with precise risk management. Requires Binance API keys to be configured in user settings.",
+    parameters: [
+      {
+        name: "symbol",
+        type: "string",
+        description:
+          "Trading pair symbol in uppercase format. Examples: 'BTCUSDT' for Bitcoin, 'ETHUSDT' for Ethereum, 'BNBUSDT' for Binance Coin. Always use USDT pairs for futures trading on Binance.",
+        required: true,
+      },
+      {
+        name: "side",
+        type: "string",
+        description:
+          "Order direction - 'BUY' for long positions (expecting price to rise) or 'SELL' for short positions (expecting price to fall). Case sensitive: use 'BUY' or 'SELL' exactly in uppercase.",
+        required: true,
+      },
+      {
+        name: "amount",
+        type: "string",
+        description:
+          "Amount in USDT to invest in this trade. This will be used to calculate the actual position size based on current price and leverage. Examples: '100' for $100 investment, '1000' for $1000 investment. Minimum usually $10-20 depending on symbol.",
+        required: true,
+      },
+      {
+        name: "leverage",
+        type: "number",
+        description:
+          "Leverage multiplier from 1 to 125. Higher leverage amplifies both profits and losses. Examples: 1 = no leverage, 10 = 10x leverage, 50 = 50x leverage. Use lower leverage (1-10x) for safer trading.",
+        required: false,
+      },
+      {
+        name: "takeProfitPrice",
+        type: "string",
+        description:
+          "Exact price level to automatically close the position for profit. For BUY orders: set above current price. For SELL orders: set below current price. Example: if BTC is $50000 and you BUY, set TP at $52000.",
+        required: false,
+      },
+      {
+        name: "stopLossPrice",
+        type: "string",
+        description:
+          "Exact price level to automatically close the position to limit losses. For BUY orders: set below current price. For SELL orders: set above current price. Example: if BTC is $50000 and you BUY, set SL at $48000.",
+        required: false,
+      },
+      {
+        name: "takeProfitPercent",
+        type: "number",
+        description:
+          "Alternative to takeProfitPrice: profit target as percentage. Examples: 3 = 3% profit, 7 = 7% profit. Will calculate exact price automatically based on current market price.",
+        required: false,
+      },
+      {
+        name: "stopLossPercent",
+        type: "number",
+        description:
+          "Alternative to stopLossPrice: loss limit as percentage. Examples: 2 = 2% loss, 4 = 4% loss. Will calculate exact price automatically based on current market price.",
+        required: false,
+      },
+    ],
+    handler: async ({
+      symbol,
+      side,
+      amount,
+      leverage,
+      takeProfitPrice,
+      stopLossPrice,
+      takeProfitPercent,
+      stopLossPercent,
+    }) => {
+      try {
+        console.log(`[CreateOrder_Binance] Creating enhanced order:`, {
+          symbol,
+          side,
+          amount,
+          leverage,
+          takeProfitPrice,
+          stopLossPrice,
+          takeProfitPercent,
+          stopLossPercent,
+        });
 
-  //       if (!address) {
-  //         return {
-  //           error: true,
-  //           message: `❌ Wallet not connected. Please connect your wallet first to create orders on Binance.`,
-  //         };
-  //       }
+        if (!address) {
+          return {
+            error: true,
+            message: `❌ Wallet not connected. Please connect your wallet first to create orders on Binance.`,
+          };
+        }
 
-  //       // Validate required parameters
-  //       if (!symbol || !side || !amount) {
-  //         return {
-  //           error: true,
-  //           message: `❌ Missing required parameters. Please provide symbol, side (BUY/SELL), and amount.`,
-  //         };
-  //       }
+        // Validate required parameters
+        if (!symbol || !side || !amount) {
+          return {
+            error: true,
+            message: `❌ Missing required parameters. Please provide symbol, side (BUY/SELL), and amount.`,
+          };
+        }
 
-  //       // Validate side parameter
-  //       const normalizedSide = side.toUpperCase();
-  //       if (normalizedSide !== "BUY" && normalizedSide !== "SELL") {
-  //         return {
-  //           error: true,
-  //           message: `❌ Invalid order side '${side}'. Must be 'BUY' or 'SELL'.`,
-  //         };
-  //       }
+        // Validate side parameter
+        const normalizedSide = side.toUpperCase();
+        if (normalizedSide !== "BUY" && normalizedSide !== "SELL") {
+          return {
+            error: true,
+            message: `❌ Invalid order side '${side}'. Must be 'BUY' or 'SELL'.`,
+          };
+        }
 
-  //       // Validate leverage if provided
-  //       if (leverage && (leverage < 1 || leverage > 125)) {
-  //         return {
-  //           error: true,
-  //           message: `❌ Invalid leverage '${leverage}'. Must be between 1 and 125.`,
-  //         };
-  //       }
+        // Validate leverage if provided
+        if (leverage && (leverage < 1 || leverage > 125)) {
+          return {
+            error: true,
+            message: `❌ Invalid leverage '${leverage}'. Must be between 1 and 125.`,
+          };
+        }
 
-  //       // Get current market price
-  //       let currentPrice;
-  //       try {
-  //         const marketData = await fetchMarketDataWithRetry(
-  //           { symbol: symbol.toUpperCase(), index: 0 },
-  //           "Binance",
-  //           "1",
-  //           1,
-  //           Date.now() - 60000, // 1 minute ago
-  //           Date.now()
-  //         );
-  //         if (marketData && marketData[0] && marketData[0][4]) {
-  //           currentPrice = parseFloat(marketData[0][4]);
-  //         } else {
-  //           throw new Error("Invalid market data response");
-  //         }
-  //       } catch (priceError) {
-  //         console.error(`[CreateOrder_Binance] Price fetch error:`, priceError);
-  //         return {
-  //           error: true,
-  //           message: `❌ Failed to fetch current price for ${symbol.toUpperCase()}. Please try again.`,
-  //         };
-  //       }
+        // Get current market price
+        let currentPrice;
+        try {
+          const marketData = await fetchMarketDataWithRetry(
+            { symbol: symbol.toUpperCase(), index: 0 },
+            "Binance",
+            "1m",
+            1,
+            Date.now() - 60000, // 1 minute ago
+            Date.now()
+          );
+          if (marketData && marketData[0] && marketData[0][4]) {
+            currentPrice = parseFloat(marketData[0][4]);
+          } else {
+            throw new Error("Invalid market data response");
+          }
+        } catch (priceError) {
+          console.error(`[CreateOrder_Binance] Price fetch error:`, priceError);
+          return {
+            error: true,
+            message: `❌ Failed to fetch current price for ${symbol.toUpperCase()}. ${priceError}`,
+          };
+        }
 
-  //       // Calculate quantity based on amount, current price, and leverage
-  //       const leverageMultiplier = leverage || 1;
-  //       const positionValue = parseFloat(amount) * leverageMultiplier;
-  //       const quantity = (positionValue / currentPrice).toFixed(6);
+        // Calculate quantity based on amount, current price, and leverage
+        const leverageMultiplier = leverage || 1;
+        const positionValue = parseFloat(amount) * leverageMultiplier;
+        const quantity = (positionValue / currentPrice).toFixed(6);
 
-  //       console.log(`[CreateOrder_Binance] Price calculation:`, {
-  //         currentPrice,
-  //         amount: parseFloat(amount),
-  //         leverage: leverageMultiplier,
-  //         positionValue,
-  //         calculatedQuantity: quantity,
-  //       });
+        console.log(`[CreateOrder_Binance] Price calculation:`, {
+          currentPrice,
+          amount: parseFloat(amount),
+          leverage: leverageMultiplier,
+          positionValue,
+          calculatedQuantity: quantity,
+        });
 
-  //       // Set leverage first if provided
-  //       if (leverage && leverage > 1) {
-  //         try {
-  //           const leverageResult = await changeLeverage(
-  //             symbol.toUpperCase(),
-  //             leverage,
-  //             "Binance"
-  //           );
-  //           if (!leverageResult?.success) {
-  //             return {
-  //               error: true,
-  //               message: `❌ Failed to set leverage to ${leverage}x: ${
-  //                 leverageResult?.message || "Unknown error"
-  //               }`,
-  //             };
-  //           }
-  //         } catch (leverageError) {
-  //           console.warn(
-  //             `[CreateOrder_Binance] Leverage warning:`,
-  //             leverageError
-  //           );
-  //           // Continue with order creation even if leverage setting fails
-  //         }
-  //       }
+        // Set leverage first if provided
+        if (leverage && leverage > 1) {
+          try {
+            const leverageResult = await changeLeverage(
+              symbol.toUpperCase(),
+              leverage,
+              "Binance"
+            );
+            if (!leverageResult?.success) {
+              return {
+                error: true,
+                message: `❌ Failed to set leverage to ${leverage}x: ${
+                  leverageResult?.message || "Unknown error"
+                }`,
+              };
+            }
+          } catch (leverageError) {
+            console.warn(
+              `[CreateOrder_Binance] Leverage warning:`,
+              leverageError
+            );
+            // Continue with order creation even if leverage setting fails
+          }
+        }
 
-  //       // Calculate TP/SL prices if percentages are provided
-  //       const finalTakeProfit = takeProfitPrice;
-  //       const finalStopLoss = stopLossPrice;
+        // Calculate TP/SL prices. Prefer explicit price inputs; fall back to percent-based calculation using currentPrice.
+        let finalTakeProfit: string | undefined = undefined;
+        let finalStopLoss: string | undefined = undefined;
 
-  //       if (takeProfitPercent || stopLossPercent) {
-  //         // We would need to fetch current price here
-  //         // For now, we'll pass the percentages as notes
-  //         console.log(
-  //           `[CreateOrder_Binance] Using percentage-based TP/SL: TP=${takeProfitPercent}%, SL=${stopLossPercent}%`
-  //         );
-  //       }
+        // If explicit prices provided, use them
+        if (takeProfitPrice) finalTakeProfit = String(takeProfitPrice);
+        if (stopLossPrice) finalStopLoss = String(stopLossPrice);
 
-  //       const result = await createOrder(
-  //         symbol.toUpperCase(),
-  //         normalizedSide,
-  //         quantity,
-  //         finalTakeProfit,
-  //         finalStopLoss,
-  //         "Binance"
-  //       );
+        // If percent-based values provided and explicit prices are not, compute from currentPrice
+        if ((takeProfitPercent || stopLossPercent) && currentPrice) {
+          const tpPercent =
+            takeProfitPercent !== undefined ? takeProfitPercent : undefined;
+          const slPercent =
+            stopLossPercent !== undefined ? stopLossPercent : undefined;
 
-  //       if (result?.error || result?.code) {
-  //         return {
-  //           error: true,
-  //           message: `❌ Order failed: ${
-  //             result?.msg || result?.message || "Unknown error"
-  //           }`,
-  //         };
-  //       }
+          // For Binance we use uppercase sides 'BUY'/'SELL' — map to Buy/Sell semantics
+          const sideForCalc = normalizedSide === "BUY" ? "Buy" : "Sell";
 
-  //       let response = `✅ **Binance Order Created Successfully**\n\n`;
-  //       response += `📊 Symbol: ${symbol.toUpperCase()}\n`;
-  //       response += `📈 Side: ${normalizedSide}\n`;
-  //       response += `💰 Investment Amount: $${amount} USDT\n`;
-  //       response += `💎 Current Price: $${currentPrice.toLocaleString()}\n`;
-  //       response += `📏 Position Size: ${quantity} ${symbol.replace(
-  //         "USDT",
-  //         ""
-  //       )}\n`;
-  //       response += `📊 Position Value: $${positionValue.toLocaleString()} USDT\n`;
-  //       if (leverage) response += `⚡ Leverage: ${leverage}x\n`;
-  //       if (finalTakeProfit || takeProfitPercent) {
-  //         response += `🎯 Take Profit: ${
-  //           finalTakeProfit || takeProfitPercent + "%"
-  //         }\n`;
-  //       }
-  //       if (finalStopLoss || stopLossPercent) {
-  //         response += `🛡️ Stop Loss: ${
-  //           finalStopLoss || stopLossPercent + "%"
-  //         }\n`;
-  //       }
-  //       response += `🏢 Exchange: Binance\n`;
-  //       response += `⏰ Created at: ${new Date().toLocaleString()}\n\n`;
-  //       response += `💡 Order has been submitted to Binance successfully.`;
-  //       if (leverage && leverage > 1) {
-  //         response += ` Leverage set to ${leverage}x.`;
-  //       }
+          const tpMultiplier = tpPercent
+            ? sideForCalc === "Buy"
+              ? 1 + tpPercent / 100
+              : 1 - tpPercent / 100
+            : undefined;
+          const slMultiplier = slPercent
+            ? sideForCalc === "Buy"
+              ? 1 - slPercent / 100
+              : 1 + slPercent / 100
+            : undefined;
 
-  //       console.log(
-  //         `[CreateOrder_Binance] Order created successfully:`,
-  //         result
-  //       );
-  //       return response;
-  //     } catch (error) {
-  //       console.error(`[CreateOrder_Binance] Error:`, error);
-  //       const errorMsg = `❌ Error creating order on Binance: ${
-  //         error instanceof Error ? error.message : "Unknown error"
-  //       }`;
-  //       return {
-  //         error: true,
-  //         message: errorMsg,
-  //       };
-  //     }
-  //   },
-  // });
+          const { takeProfit, stopLoss } = calculateTPSL(
+            currentPrice,
+            sideForCalc as "Buy" | "Sell",
+            tpMultiplier,
+            slMultiplier
+          );
+
+          if (!finalTakeProfit && takeProfit)
+            finalTakeProfit = String(takeProfit);
+          if (!finalStopLoss && stopLoss) finalStopLoss = String(stopLoss);
+
+          console.log(
+            `[CreateOrder_Binance] Calculated TP/SL from percents: TP=${finalTakeProfit}, SL=${finalStopLoss}`
+          );
+        }
+
+        const result = await createOrder(
+          symbol.toUpperCase(),
+          normalizedSide,
+          quantity,
+          finalTakeProfit,
+          finalStopLoss,
+          "Binance"
+        );
+
+        if (result?.error || result?.code) {
+          return {
+            error: true,
+            message: `❌ Order failed: ${
+              result?.msg || result?.message || "Unknown error"
+            }`,
+          };
+        }
+
+        let response = `✅ **Binance Order Created Successfully**\n\n`;
+        response += `📊 Symbol: ${symbol.toUpperCase()}\n`;
+        response += `📈 Side: ${normalizedSide}\n`;
+        response += `💰 Investment Amount: $${amount} USDT\n`;
+        response += `💎 Current Price: $${currentPrice.toLocaleString()}\n`;
+        response += `📏 Position Size: ${quantity} ${symbol.replace(
+          "USDT",
+          ""
+        )}\n`;
+        response += `📊 Position Value: $${positionValue.toLocaleString()} USDT\n`;
+        if (leverage) response += `⚡ Leverage: ${leverage}x\n`;
+        if (finalTakeProfit || takeProfitPercent) {
+          response += `🎯 Take Profit: ${
+            finalTakeProfit || takeProfitPercent + "%"
+          }\n`;
+        }
+        if (finalStopLoss || stopLossPercent) {
+          response += `🛡️ Stop Loss: ${
+            finalStopLoss || stopLossPercent + "%"
+          }\n`;
+        }
+        response += `🏢 Exchange: Binance\n`;
+        response += `⏰ Created at: ${new Date().toLocaleString()}\n\n`;
+        response += `💡 Order has been submitted to Binance successfully.`;
+        if (leverage && leverage > 1) {
+          response += ` Leverage set to ${leverage}x.`;
+        }
+
+        console.log(
+          `[CreateOrder_Binance] Order created successfully:`,
+          result
+        );
+        return response;
+      } catch (error) {
+        console.error(`[CreateOrder_Binance] Error:`, error);
+        const errorMsg = `❌ Error creating order on Binance: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`;
+        return {
+          error: true,
+          message: errorMsg,
+        };
+      }
+    },
+  });
 
   useCopilotAction({
     name: "ChangeLeverage_Binance",
@@ -371,7 +405,8 @@ export default function Binance() {
         const result = await changeLeverage(
           symbol.toUpperCase(),
           leverage,
-          "Binance"
+          "Binance",
+          address
         );
 
         if (!result?.success) {
@@ -409,7 +444,7 @@ export default function Binance() {
   });
 
   useCopilotAction({
-    name: "GetPositionInfo_Binance",
+    name: "PositionInfo_Binance",
     description:
       "Get detailed position information for a specific trading pair on Binance Futures. This action retrieves comprehensive position data including size, entry price, unrealized PnL, margin, leverage, and liquidation price. Critical for monitoring open positions and managing risk effectively.",
     parameters: [
@@ -444,7 +479,8 @@ export default function Binance() {
 
         const positionInfo = await getPositionInfo(
           symbol.toUpperCase(),
-          "Binance"
+          "Binance",
+          address
         );
 
         if (!positionInfo) {

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import Image from "next/image";
+import toast from "react-hot-toast";
 import { WalletAsset } from "../hooks/useWalletAssets";
 import { Icon } from "@iconify/react";
 import { useAppKit } from "@reown/appkit/react";
@@ -81,13 +82,28 @@ const WalletManagementModal: React.FC<WalletManagementModalProps> = ({
           <p className="text-[#9A9C9C] text-base ">
             {address.slice(0, 6)}...{address.slice(-6)}
           </p>
-          <Image
-            src="/icons/ash_copy.svg"
-            alt="Copy"
-            width={20}
-            height={20}
-            className="text-white"
-          />
+          <button
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(address);
+                toast.success("Address copied to clipboard");
+              } catch (err) {
+                console.error("Copy failed", err);
+                toast.error("Failed to copy address");
+              }
+            }}
+            aria-label="Copy address"
+            className="cursor-pointer"
+            title="Copy address"
+          >
+            <Image
+              src="/icons/ash_copy.svg"
+              alt="Copy"
+              width={20}
+              height={20}
+              className="text-white"
+            />
+          </button>
         </div>
         <button
           onClick={() => open()}

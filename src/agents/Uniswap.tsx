@@ -22,12 +22,12 @@ import { useRewardIntegrations } from "@/hooks/useRewardIntegrations";
 import { logUserAction } from "@/actions/statistics";
 import { getTokenUsdPrice } from "@/lib/pricing";
 
+const QUICKNODE_HTTP_ENDPOINT =
+  "https://wiser-billowing-diagram.quiknode.pro/7b5999ec873d704e376e88b7464a49ff0924414c/";
+const provider = ethers.providers.getDefaultProvider(QUICKNODE_HTTP_ENDPOINT);
 const Uniswap = () => {
   const { isConnected, address } = useAppKitAccount();
   const { handleDefiAction } = useRewardIntegrations(address);
-  const QUICKNODE_HTTP_ENDPOINT =
-    "https://wiser-billowing-diagram.quiknode.pro/7b5999ec873d704e376e88b7464a49ff0924414c/";
-  const provider = ethers.providers.getDefaultProvider(QUICKNODE_HTTP_ENDPOINT);
 
   useCopilotAdditionalInstructions({
     instructions:

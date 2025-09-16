@@ -86,7 +86,7 @@ const Explore = () => {
       {/* Page Title */}
       <div className="w-full flex flex-col items-start px-[58px] justify-center  h-[293px] mx-auto  mb-6 rounded-[14px] relative">
         <Image
-          src={"/images/strategy_bg.svg"}
+          src={"/images/bg_trade.png"}
           fill
           alt="bg"
           quality={100}

@@ -30,6 +30,8 @@ import {
   getPnlColorClass,
 } from "@/utils/pnlCalculator";
 
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
 // Type for API error responses
 interface ApiError {
   response?: {
@@ -57,40 +59,6 @@ const StrategyDetailsPage = () => {
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Fetch strategy from database
-  const fetchStrategy = useCallback(async () => {
-    if (!params?.id) {
-      // No strategy id in params — clear loading so the UI doesn't hang
-      setLoading(false);
-      setError("No strategy id provided");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Convert slug back to strategy ID
-      const strategyId = params.id;
-      const result = await getStrategyById(strategyId);
-      console.log(result, "res");
-
-      if (result.success && result.strategy) {
-        setStrategy(result.strategy);
-        setLoading(false);
-      } else {
-        setError(result.message || "Strategy not found");
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error("Error fetching strategy from database:", error);
-      setError("Failed to load strategy data");
-      setLoading(false);
-    } finally {
-      setLoading(false);
-    }
-  }, [params?.id]);
 
   // Input state (ETH)
   const [amountUSDT, setAmountUsdt] = useState<string>("");
@@ -384,38 +352,69 @@ const StrategyDetailsPage = () => {
     }
   }, [address, isConnected, strategy]);
 
-  // Fetch strategy AUM (Assets Under Management)
-  const fetchStrategyAUM = useCallback(async () => {
-    if (!strategy) {
-      setStrategyAUM(0);
+  // Fetch strategy from database AND its AUM
+  const fetchStrategyAndAUM = useCallback(async () => {
+    if (!params?.id) {
+      // No strategy id in params — clear loading so the UI doesn't hang
+      setLoading(false);
+      setError("No strategy id provided");
       return;
     }
 
-    setLoadingAUM(true);
-    try {
-      const strategyId = strategy.title.toLowerCase().replace(/\s+/g, "-");
-      const result = await getStrategyAUM(strategyId);
+    setLoading(true);
+    setError(null);
 
-      if (result.success) {
-        setStrategyAUM(result.totalAUM || 0);
+    try {
+      // Convert slug back to strategy ID
+      const strategyId = params.id;
+      const result = await getStrategyById(strategyId);
+
+      if (result.success && result.strategy) {
+        const fetchedStrategy = result.strategy;
+        setStrategy(fetchedStrategy);
+        setLoading(false);
+
+        // Now fetch AUM based on the fetched strategy title
+        try {
+          setLoadingAUM(true);
+          const derivedId = fetchedStrategy.title
+            .toLowerCase()
+            .replace(/\s+/g, "-");
+          const aumResult = await getStrategyAUM(derivedId);
+
+          if (aumResult.success) {
+            setStrategyAUM(aumResult.totalAUM || 0);
+          } else {
+            console.error("Error fetching strategy AUM:", aumResult.message);
+            setStrategyAUM(0);
+          }
+        } catch (aumError) {
+          console.error("Error fetching strategy AUM:", aumError);
+          setStrategyAUM(0);
+        } finally {
+          setLoadingAUM(false);
+        }
       } else {
-        console.error("Error fetching strategy AUM:", result.message);
+        setError(result.message || "Strategy not found");
+        setLoading(false);
+        // ensure AUM cleared on failure
         setStrategyAUM(0);
       }
     } catch (error) {
-      console.error("Error fetching strategy AUM:", error);
+      console.error("Error fetching strategy from database:", error);
+      setError("Failed to load strategy data");
+      setLoading(false);
       setStrategyAUM(0);
     } finally {
-      setLoadingAUM(false);
+      setLoading(false);
     }
-  }, [strategy]);
+  }, [params?.id]);
 
   // Cache keys for Redis
   const getCacheKey = useCallback(
     (exchange: string) => `balance_${exchange.toLowerCase()}_${address}`,
     [address]
   );
-  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
   // Fetch exchange balances with Redis caching
   const fetchBalances = useCallback(
@@ -567,25 +566,6 @@ const StrategyDetailsPage = () => {
     [address, isConnected, CACHE_DURATION, getCacheKey]
   ); // Add all dependencies
 
-  useEffect(() => {
-    fetchStrategy();
-    fetchStrategyAUM(); // Fetch AUM regardless of wallet connection
-  }, []);
-
-  useEffect(() => {
-    if (address && isConnected) {
-      fetchBalances();
-      fetchUserAllocation();
-      fetchUserTransactions();
-    }
-  }, [
-    address,
-    isConnected,
-    fetchBalances,
-    fetchUserAllocation,
-    fetchUserTransactions,
-  ]);
-
   const handleRefreshBalances = () => {
     if (!address || !isConnected) {
       toast.error("Wallet must be connected first", {
@@ -668,7 +648,7 @@ const StrategyDetailsPage = () => {
       // Refresh user allocation data
       fetchUserAllocation();
       fetchUserTransactions();
-      fetchStrategyAUM(); // Refresh AUM after successful allocation
+      fetchStrategyAndAUM(); // Refresh AUM after successful allocation
 
       console.log("Strategy allocated:", result);
     } catch (error) {
@@ -729,7 +709,7 @@ const StrategyDetailsPage = () => {
       // Refresh user allocation data
       fetchUserAllocation();
       fetchUserTransactions();
-      fetchStrategyAUM(); // Refresh AUM after successful deallocation
+      fetchStrategyAndAUM(); // Refresh AUM after successful deallocation
 
       console.log("Strategy deallocated:", result);
     } catch (error) {
@@ -740,6 +720,24 @@ const StrategyDetailsPage = () => {
       });
     }
   };
+
+  useEffect(() => {
+    fetchStrategyAndAUM();
+  }, []);
+
+  useEffect(() => {
+    if (address && isConnected) {
+      fetchBalances();
+      fetchUserAllocation();
+      fetchUserTransactions();
+    }
+  }, [
+    address,
+    isConnected,
+    fetchBalances,
+    fetchUserAllocation,
+    fetchUserTransactions,
+  ]);
 
   // Loading state
   if (loading) {
@@ -797,7 +795,7 @@ const StrategyDetailsPage = () => {
               {error || "The requested strategy could not be found"}
             </p>
             <button
-              onClick={fetchStrategy}
+              onClick={fetchStrategyAndAUM}
               className="mt-4 px-4 py-2 bg-[#6B5CFF] text-white rounded-lg hover:bg-[#584BFF] transition-colors"
             >
               Try Again

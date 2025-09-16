@@ -52,9 +52,7 @@ export const getBalance = async (
 
     if (exchange === "Bybit") {
       if (!bybit.apiKey || !bybit.secretKey) {
-        throw new Error(
-          "Bybit API keys not found. Please configure your API keys first."
-        );
+        return 0;
       }
 
       const timestamp = Date.now() - 3000;
@@ -85,9 +83,7 @@ export const getBalance = async (
       return res.data.result.list[0].totalAvailableBalance;
     } else if (exchange === "Binance") {
       if (!binance.apiKey || !binance.secretKey) {
-        throw new Error(
-          "Binance API keys not found. Please configure your API keys first."
-        );
+        return 0;
       }
 
       const timestamp = Date.now();
@@ -486,14 +482,17 @@ export const changeLeverage = async (
 
       const timestamp = Date.now();
       const recvWindow = 5000;
-
+      // console.log(binance.secretKey);
       // Validate leverage range (1-125 for Binance)
       if (leverage < 1 || leverage > 125) {
         throw new Error("Leverage must be between 1 and 125");
       }
 
       const queryString = `symbol=${symbol}&leverage=${leverage}&timestamp=${timestamp}&recvWindow=${recvWindow}`;
-      const signature = createBinanceSignature(queryString, binance.secretKey);
+      const signature = createBinanceSignature(
+        queryString,
+        binance.secretKey.trim()
+      );
 
       const res = await axios.post(
         `https://fapi.binance.com/fapi/v1/leverage?${queryString}&signature=${signature}`,

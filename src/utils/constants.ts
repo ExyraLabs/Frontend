@@ -221,12 +221,23 @@ export const getToolIcon = (toolName: string): string | null => {
     Withdraw: "/icons/aave.svg",
     // GetUserTokenPosition: "/icons/aave.svg",
 
-    //Binance,
+    //Bybit,
+    CreateOrder_Bybit:
+      "https://assets.coingecko.com/markets/images/698/small/bybit_spot.png",
     Balance_Bybit:
       "https://assets.coingecko.com/markets/images/698/small/bybit_spot.png",
     PositionInfo_Bybit:
       "https://assets.coingecko.com/markets/images/698/small/bybit_spot.png",
+    ChangeLeverage_Bybit:
+      "https://assets.coingecko.com/markets/images/698/small/bybit_spot.png",
+    //Binance,
     Balance_Binance:
+      "https://assets.coingecko.com/markets/images/52/small/binance.jpg",
+    CreateOrder_Binance:
+      "https://assets.coingecko.com/markets/images/52/small/binance.jpg",
+    PositionInfo_Binance:
+      "https://assets.coingecko.com/markets/images/52/small/binance.jpg",
+    ChangeLeverage_Binance:
       "https://assets.coingecko.com/markets/images/52/small/binance.jpg",
   };
 
