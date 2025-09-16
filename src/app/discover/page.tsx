@@ -262,7 +262,7 @@ const Explore = () => {
   }, []);
 
   return (
-    <div className="flex flex-col px-4 scrollbar-hide  overflow-y-scroll w-full">
+    <div className="flex flex-col px-4 scrollbar-hide pb-4  overflow-y-scroll w-full">
       {/* Page Title */}
       <h1 className="text-[28px] font-bold text-white mb-4 mt-2">
         Explore Agents
