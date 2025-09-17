@@ -356,9 +356,7 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
                       {(
                         strategy.history as TradeHistoryEntry[] | undefined
                       )?.map((trade, idx) => {
-                        const pnlValue = trade.exitPrice
-                          ? (trade.exitPrice - trade.entryPrice).toFixed(2)
-                          : undefined;
+                        const pnlValue = trade.pnl;
                         const isLoss = pnlValue ? Number(pnlValue) < 0 : false;
                         return (
                           <tr
@@ -387,7 +385,9 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
                                 isLoss ? "text-red-500" : "text-green-400"
                               }`}
                             >
-                              {pnlValue ? `${Math.abs(Number(pnlValue))}` : "-"}
+                              {pnlValue
+                                ? `${Math.abs(Number(pnlValue))}%`
+                                : "-"}
                             </td>
                           </tr>
                         );
