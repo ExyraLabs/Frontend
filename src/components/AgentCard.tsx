@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { chainImageMapping } from "@/utils/constants";
 import { useChatRoomsMessages } from "../hooks/useChatRoomsMessages";
 
@@ -23,6 +24,38 @@ const AgentCard: React.FC<AgentCardProps> = ({
 }) => {
   const router = useRouter();
   const { createChatRoom, loadChatRooms } = useChatRoomsMessages();
+
+  // State for carousel functionality
+  const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
+  const promptsPerSlide = 2;
+  const totalSlides = Math.ceil(prompts.length / promptsPerSlide);
+
+  // Auto-rotate prompts every 4 seconds if there are more than 2 prompts
+  useEffect(() => {
+    if (prompts.length > promptsPerSlide) {
+      const interval = setInterval(() => {
+        setCurrentPromptIndex((prev) => (prev + 1) % totalSlides);
+      }, 10000);
+
+      return () => clearInterval(interval);
+    }
+  }, [prompts.length, totalSlides, promptsPerSlide]);
+
+  // Get current prompts to display (always return exactly 2 or fill with empty)
+  const getCurrentPrompts = (): (string | null)[] => {
+    const startIndex = currentPromptIndex * promptsPerSlide;
+    const currentSlicePrompts = prompts.slice(
+      startIndex,
+      startIndex + promptsPerSlide
+    );
+
+    // Always return exactly 2 items, fill with null if less
+    const result: (string | null)[] = [...currentSlicePrompts];
+    while (result.length < promptsPerSlide) {
+      result.push(null);
+    }
+    return result;
+  };
 
   // Helper to generate a proper uuid (RFC4122 v4)
   function generateUUID() {
@@ -99,38 +132,76 @@ const AgentCard: React.FC<AgentCardProps> = ({
         </ul>
       </div>
       {/* Prompts */}
-      <div className="h-[45%] flex flex-col justify-end">
+      <div className="h-[45%] flex flex-col justify-center">
         <div className="text-[#9B9D9D] text-xs font-semibold mb-2">
           Suggested Prompts
         </div>
-        <div className="flex flex-col gap-2">
-          {prompts.map((prompt, idx) => (
-            <button
-              key={idx}
-              onClick={() => handlePromptClick(prompt)}
-              className="flex cursor-pointer items-center gap-2 bg-[#262727] hover:bg-[#232323] rounded-[8px] px-3 py-2 transition-colors duration-200"
+
+        {/* Fixed height container for exactly 2 prompts */}
+        <div className="flex flex-col gap-2 h-[88px]">
+          {/* Fixed height for 2 prompts */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentPromptIndex}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="flex flex-col gap-2"
             >
-              <span className="text-primary">
-                <svg
-                  width="19"
-                  height="18"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M18 8.991c-4.693 0-8.491 3.816-8.491 8.509 0-4.693-3.816-8.509-8.509-8.509 4.693 0 8.509-3.798 8.509-8.491A8.486 8.486 0 0018 8.991z"
-                    fill="currentColor"
-                    stroke="#A79EF5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+              {getCurrentPrompts().map((prompt, idx) => (
+                <div key={idx} className="h-[40px] ">
+                  {" "}
+                  {/* Fixed height per prompt */}
+                  {prompt ? (
+                    <button
+                      onClick={() => handlePromptClick(prompt)}
+                      className="w-full h-full flex cursor-pointer items-center gap-2 bg-[#262727] hover:bg-[#232323] rounded-[8px] px-3 py-2 transition-colors duration-200"
+                    >
+                      <span className="text-primary scale-75 flex-shrink-0">
+                        <svg
+                          width="19"
+                          height="18"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M18 8.991c-4.693 0-8.491 3.816-8.491 8.509 0-4.693-3.816-8.509-8.509-8.509 4.693 0 8.509-3.798 8.509-8.491A8.486 8.486 0 0018 8.991z"
+                            fill="currentColor"
+                            stroke="#A79EF5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </span>
+                      <span className="text-left text-xs text-[#A79EF5] truncate">
+                        {prompt}
+                      </span>
+                    </button>
+                  ) : (
+                    /* Empty placeholder to maintain height */
+                    <div className="w-full h-full"></div>
+                  )}
+                </div>
+              ))}
+            </motion.div>
+            {/* Dots indicator (only show if more than 2 prompts) */}
+            {prompts.length > promptsPerSlide && (
+              <div className="flex justify-center gap-1 mt-1">
+                {Array.from({ length: totalSlides }).map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentPromptIndex(index)}
+                    className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
+                      index === currentPromptIndex
+                        ? "bg-[#A79EF5]"
+                        : "bg-[#474848] hover:bg-[#6B6B6B]"
+                    }`}
                   />
-                </svg>
-              </span>
-              <span className="text-left text-xs lg:text-sm text-[#A79EF5]">
-                {prompt}
-              </span>
-            </button>
-          ))}
+                ))}
+              </div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

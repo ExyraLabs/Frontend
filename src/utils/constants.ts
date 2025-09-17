@@ -13,6 +13,234 @@ export const chainImageMapping: { [key: string]: string } = {
   Berachain: "/icons/berachain.svg",
 };
 
+export const AGENT_CARDS = [
+  {
+    icon: "/icons/Lido.png",
+    title: "Lido Finance",
+    subtitle: "Liquid staking for Ethereum",
+    category: "Stake",
+    features: [
+      "Earn staking rewards on your ETH.",
+      "Participate in DeFi with stETH.",
+    ],
+    prompts: [
+      "Stake 0.1 ETH with Lido to earn rewards",
+      "Check my stETH balance and shares",
+      "Request withdrawal of 0.05 stETH",
+      "Get current Lido staking APR and statistics",
+    ],
+    chains: ["Ethereum"],
+  },
+  {
+    icon: "/icons/uniswap.png",
+    title: "Uniswap",
+    subtitle: "Decentralized exchange for swapping tokens",
+    category: "Swap",
+    features: [
+      // "Swap any ERC-20 token instantly",
+      "Provide liquidity and earn fees",
+      "Access deep liquidity pools",
+    ],
+    prompts: [
+      "Get quote for swapping 50 USDC to ETH",
+      "Swap 0.1 ETH for USDT on Uniswap",
+      "Wrap 0.5 ETH to WETH",
+      "Unwrap 0.3 WETH back to ETH",
+    ],
+    chains: ["Ethereum"],
+  },
+  {
+    icon: "/icons/kyber.png",
+    title: "KyberSwap",
+    subtitle: "Multi-chain DEX aggregator",
+    category: "Swap",
+    features: [
+      "Find best token swap rates across chains.",
+      "Swap tokens on Ethereum, BSC, Polygon and more.",
+      "Earn rewards by providing liquidity.",
+    ],
+    prompts: [
+      "Get best routes for swapping 1 ETH to USDC",
+      "Swap 200 USDT for ETH on Ethereum",
+      "Find optimal swap rates across DEXs",
+      "Execute swap with 0.5% slippage tolerance",
+    ],
+    chains: ["Ethereum"],
+  },
+  {
+    icon: "/icons/gecko.png",
+    title: "CoinGecko",
+    subtitle: "Your go-to source for crypto market data",
+    category: "Research",
+    features: [
+      "Track price movements of your favorite coins.",
+      "Get real-time market data and charts.",
+      "Compare different cryptocurrencies.",
+    ],
+    prompts: [
+      "Get current Bitcoin price and market data",
+      "Find contract address for USDC token",
+      "Search for Ethereum token information",
+      "Get token details and price for SOL",
+    ],
+    chains: ["Ethereum"],
+  },
+  // {
+  //   icon: "/icons/curve.jpeg",
+  //   title: "Curve Finance",
+  //   subtitle: "Efficient stablecoin and like-asset trading",
+  //   category: "Swap",
+  //   features: [
+  //     "Trade stablecoins with minimal slippage",
+  //     "Provide liquidity to earn trading fees",
+  //     "Access deep liquidity for stable assets",
+  //   ],
+  //   prompts: [
+  //     "Show me available Curve pools",
+  //     "Provide liquidity to the 3pool",
+  //   ],
+  //   chains: ["Ethereum", "Arbitrum", "Optimism"],
+  // },
+  {
+    icon: "/icons/alchemy.svg",
+    title: "Alchemy SDK",
+    subtitle: "Powerful blockchain data and infrastructure",
+    category: "Research",
+    features: [
+      "Access comprehensive blockchain data.",
+      "Get real-time transaction information.",
+      "Query NFT metadata and ownership.",
+    ],
+    prompts: [
+      "Get all token balances in my wallet",
+      "Check USDC balance for my address",
+      "Get account balance for specific token",
+      "Show ETH balance for wallet address",
+    ],
+    chains: ["Ethereum"],
+  },
+  // {
+  //   icon: "/icons/curve.jpeg",
+  //   title: "Curve Finance",
+  //   subtitle: "Efficient stablecoin and like-asset trading",
+  //   category: "Provide LP",
+  //   features: [
+  //     "Trade stablecoins with minimal slippage",
+  //     "Provide liquidity to earn trading fees",
+  //     "Access deep liquidity for stable assets",
+  //   ],
+  //   prompts: [
+  //     "Show me available Curve pools",
+  //     "Provide liquidity to the 3pool",
+  //   ],
+  //   chains: ["Ethereum", "Arbitrum", "Optimism"],
+  // },
+  // {
+  //   icon: "/icons/bridge.svg",
+  //   title: "Cross-Chain Bridge",
+  //   subtitle: "Bridge assets across different blockchains",
+  //   category: "Bridge",
+  //   features: [
+  //     "Bridge tokens between Ethereum and Layer 2s",
+  //     "Support for multiple chains",
+  //     "Secure cross-chain transfers",
+  //   ],
+  //   prompts: [
+  //     "Bridge 0.1 ETH from Ethereum to Arbitrum",
+  //     "What are the bridge fees for USDC?",
+  //   ],
+  //   chains: ["Ethereum", "Arbitrum", "Optimism", "Base"],
+  // },
+  {
+    icon: "/icons/aave.svg",
+    title: "Aave Protocol",
+    subtitle: "Decentralized lending and borrowing platform",
+    category: "Lend",
+    features: [
+      "Lend crypto assets to earn interest",
+      "Borrow against your collateral",
+      "Access flash loans",
+    ],
+    prompts: [
+      "Supply 100 USDC to Aave for lending",
+      "Find highest APY reserves available",
+      "Borrow 50 DAI against my collateral",
+      "Check my current supply and borrow positions",
+    ],
+    chains: ["Ethereum"],
+  },
+  {
+    icon: "/icons/lifi.png",
+    title: "Li.Fi",
+    subtitle: "Cross-chain bridging powered by Li.Fi SDK",
+    category: "Bridge",
+    features: [
+      "Bridge tokens between Ethereum and Layer 2s",
+      "Support for multiple chains",
+      "Secure cross-chain transfers",
+    ],
+    prompts: [
+      "Get bridge quote for 100 USDC to Polygon",
+      "Execute bridge from Ethereum to Arbitrum",
+      "Find cheapest way to bridge USDT to Base",
+      "Get bridge fees for 0.5 ETH to Optimism",
+    ],
+    chains: ["Ethereum", "Polygon"],
+  },
+  {
+    icon: "https://assets.coingecko.com/markets/images/52/small/binance.jpg",
+    title: "Binance",
+    subtitle: "Leading cryptocurrency exchange platform",
+    category: "Trading",
+    features: [
+      "Check your Binance account balance",
+      "Access real-time trading data",
+      "Secure API integration",
+    ],
+    prompts: [
+      "Check my Binance futures balance",
+      "Create order: Buy BTCUSDT with 10x leverage",
+      "Set leverage to 5x for ETHUSDT",
+      "Get position info for SOLUSDT",
+    ],
+    chains: [
+      "Ethereum",
+      "BNB Smart Chain",
+      "Arbitrum",
+      "Optimism",
+      "Solana",
+      "Monad",
+      "Berachain",
+    ],
+  },
+  {
+    icon: "https://assets.coingecko.com/markets/images/698/small/bybit_spot.png",
+    title: "Bybit",
+    subtitle: "Advanced cryptocurrency derivatives exchange",
+    category: "Trading",
+    features: [
+      "Check your Bybit account balance",
+      "Access derivatives trading data",
+      "Secure API integration",
+    ],
+    prompts: [
+      "Show my Bybit account balance",
+      "Place order: Long BTCUSDT $100 with 20x leverage",
+      "Change leverage to 15x for ETHUSDT",
+      "Check position details for ADAUSDT",
+    ],
+    chains: [
+      "Ethereum",
+      "BNB Smart Chain",
+      "Arbitrum",
+      "Optimism",
+      "Solana",
+      "Monad",
+      "Berachain",
+    ],
+  },
+];
+
 export const STRATS_CARDS: Strategy[] = [
   {
     icon: [
