@@ -20,8 +20,8 @@ export const AGENT_CARDS = [
     subtitle: "Liquid staking for Ethereum",
     category: "Stake",
     features: [
-      "Earn staking rewards on your ETH.",
-      "Participate in DeFi with stETH.",
+      "Earn staking rewards on your ETH",
+      "Participate in DeFi with stETH",
     ],
     prompts: [
       "Stake 0.1 ETH with Lido to earn rewards",
@@ -55,9 +55,9 @@ export const AGENT_CARDS = [
     subtitle: "Multi-chain DEX aggregator",
     category: "Swap",
     features: [
-      "Find best token swap rates across chains.",
-      "Swap tokens on Ethereum, BSC, Polygon and more.",
-      "Earn rewards by providing liquidity.",
+      "Find best token swap rates across chains",
+      "Swap tokens on Ethereum, BSC, Polygon and more",
+      "Earn rewards by providing liquidity",
     ],
     prompts: [
       "Get best routes for swapping 1 ETH to USDC",
@@ -73,9 +73,9 @@ export const AGENT_CARDS = [
     subtitle: "Your go-to source for crypto market data",
     category: "Research",
     features: [
-      "Track price movements of your favorite coins.",
-      "Get real-time market data and charts.",
-      "Compare different cryptocurrencies.",
+      "Track price movements of your favorite coins",
+      "Get real-time market data and charts",
+      "Compare different cryptocurrencies",
     ],
     prompts: [
       "Get current Bitcoin price and market data",
@@ -107,9 +107,9 @@ export const AGENT_CARDS = [
     subtitle: "Powerful blockchain data and infrastructure",
     category: "Research",
     features: [
-      "Access comprehensive blockchain data.",
-      "Get real-time transaction information.",
-      "Query NFT metadata and ownership.",
+      "Access comprehensive blockchain data",
+      "Get real-time transaction information",
+      "Query NFT metadata and ownership",
     ],
     prompts: [
       "Get all token balances in my wallet",

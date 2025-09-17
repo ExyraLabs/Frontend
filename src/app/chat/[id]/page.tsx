@@ -279,7 +279,7 @@ const Page = () => {
       const isSuccess = toolCall.result?.status?.code === "Success" && !isError;
       const hasResult = !!toolCall.result;
 
-      console.log(toolCall.result, " Tool Call Result");
+      // console.log(toolCall.result, " Tool Call Result");
 
       // Show loading state or result
       if (!hasResult) {

@@ -227,7 +227,8 @@ export default function Binance() {
             const leverageResult = await changeLeverage(
               symbol.toUpperCase(),
               leverage,
-              "Binance"
+              "Binance",
+              address
             );
             if (!leverageResult?.success) {
               return {
@@ -297,7 +298,8 @@ export default function Binance() {
           quantity,
           finalTakeProfit,
           finalStopLoss,
-          "Binance"
+          "Binance",
+          address
         );
 
         if (result?.error || result?.code) {

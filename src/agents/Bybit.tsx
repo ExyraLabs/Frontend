@@ -301,7 +301,8 @@ export default function Bybit() {
           quantity,
           finalTakeProfit,
           finalStopLoss,
-          "Bybit"
+          "Bybit",
+          address
         );
 
         // Check if result indicates an error
