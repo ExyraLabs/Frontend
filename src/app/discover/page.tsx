@@ -22,6 +22,7 @@ const CHAINS = [
   "Arbitrum",
   "Optimism",
   "Solana",
+  "Polygon",
   "Monad",
   "Berachain",
 ];

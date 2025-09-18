@@ -97,6 +97,7 @@ export const getBalance = async (
         {
           headers: {
             "X-MBX-APIKEY": binance.apiKey,
+            "Content-Type": "application/x-www-form-urlencoded",
           },
         }
       );
@@ -367,7 +368,7 @@ export const createOrder = async (
       const recvWindow = 5000;
 
       // Build query string for Binance order
-      let queryString = `symbol=${symbol}&side=${side}&type=MARKET&quantity=${qty}&timestamp=${timestamp}&recvWindow=${recvWindow}`;
+      let queryString = `symbol=${symbol}&side=${side.toUpperCase()}&type=MARKET&quantity=${qty}&timestamp=${timestamp}&recvWindow=${recvWindow}`;
 
       // Add take profit and stop loss if provided
       if (tp) {
@@ -389,15 +390,19 @@ export const createOrder = async (
           },
         }
       );
-
       return res.data;
     }
     //eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error(
-      error.response ? error.response.data : error.message ?? error
+      error.response ? error.response.data.msg : error.message ?? error
     );
-    return error;
+    return {
+      error: true,
+      message: error.response
+        ? error.response.data.msg
+        : error.message ?? error,
+    };
   }
 };
 
@@ -536,9 +541,124 @@ export const changeLeverage = async (
   }
 };
 
+// Types for API responses
+interface SymbolConfig {
+  symbol: string;
+  marginType: string;
+  isAutoAddMargin: string;
+  leverage: number;
+  maxNotionalValue: string;
+}
+
+export const getSymbolLeverage = async (
+  symbol?: string,
+  exchange: string = "Binance",
+  address?: string
+) => {
+  try {
+    if (!address) {
+      throw new Error("User wallet address is required to fetch API keys");
+    }
+
+    // Fetch API keys from database
+    const keysResult = await getUserApiKeys(address);
+    if (!keysResult.success || !keysResult.keys) {
+      throw new Error(keysResult.message || "Failed to retrieve API keys");
+    }
+
+    const { binance } = keysResult.keys;
+
+    if (exchange === "Binance") {
+      if (!binance.apiKey || !binance.secretKey) {
+        throw new Error(
+          "Binance API keys not found. Please configure your API keys first."
+        );
+      }
+
+      const timestamp = Date.now();
+      const recvWindow = 5000;
+
+      // Build query string - symbol is optional
+      let queryString = `timestamp=${timestamp}&recvWindow=${recvWindow}`;
+      if (symbol) {
+        queryString = `symbol=${symbol}&${queryString}`;
+      }
+
+      const signature = createBinanceSignature(queryString, binance.secretKey);
+
+      const res = await axios.get(
+        `https://fapi.binance.com/fapi/v1/symbolConfig?${queryString}&signature=${signature}`,
+        {
+          headers: {
+            "X-MBX-APIKEY": binance.apiKey,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        }
+      );
+
+      console.log("Symbol configuration result:", res.data);
+
+      const symbolConfigs: SymbolConfig[] = res.data;
+
+      if (symbol) {
+        // Return specific symbol configuration
+        const symbolConfig = symbolConfigs.find(
+          (config: SymbolConfig) => config.symbol === symbol
+        );
+        if (symbolConfig) {
+          return {
+            success: true,
+            symbol: symbolConfig.symbol,
+            leverage: symbolConfig.leverage,
+            marginType: symbolConfig.marginType,
+            isAutoAddMargin: symbolConfig.isAutoAddMargin,
+            maxNotionalValue: symbolConfig.maxNotionalValue,
+          };
+        } else {
+          return {
+            success: false,
+            message: `Symbol ${symbol} not found in configuration`,
+          };
+        }
+      } else {
+        // Return all symbol configurations
+        return {
+          success: true,
+          data: symbolConfigs.map((config: SymbolConfig) => ({
+            symbol: config.symbol,
+            leverage: config.leverage,
+            marginType: config.marginType,
+            isAutoAddMargin: config.isAutoAddMargin,
+            maxNotionalValue: config.maxNotionalValue,
+          })),
+        };
+      }
+    } else {
+      throw new Error(
+        "Symbol leverage retrieval is currently only supported for Binance"
+      );
+    }
+    //eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    console.error(
+      "Error getting symbol leverage:",
+      error.response?.data || error.message
+    );
+    return {
+      success: false,
+      message:
+        error.response?.data?.msg ||
+        error.message ||
+        "Failed to get symbol leverage",
+      error: error.response?.data || error,
+    };
+  }
+};
+
 // Example usage:
 // createOrder("SUIUSDT", "Buy", "50", undefined, undefined, "Bybit");
 // getTradeHistory("ALEOUSDT", "10-17-2024", "10-24-2024", "Binance");
 // changeLeverage("BTCUSDT", 10, "Bybit");
 // changeLeverage("BTCUSDT", 5, "Bybit");
 // getBalance("Binance");
+// getSymbolLeverage("BTCUSDT", "Binance", userAddress);

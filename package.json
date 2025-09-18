@@ -35,6 +35,7 @@
     "@uniswap/v3-sdk": "^3.25.2",
     "@use-telegram-auth/client": "^1.0.5",
     "alchemy-sdk": "^3.6.2",
+    "axios": "^1.12.2",
     "ethers": "5.7.2",
     "ethers-v5": "npm:ethers@5.7.2",
     "framer-motion": "^12.23.12",

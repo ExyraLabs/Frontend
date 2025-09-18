@@ -55,7 +55,7 @@ export const CustomWagmiProvider: FC<CustomWagmiProviderProps> = ({
     queryKey: ["chains"] as const,
     queryFn: async () => {
       const chains = await getChains({
-        chainTypes: [ChainType.EVM],
+        chainTypes: [ChainType.EVM, ChainType.SVM, ChainType.MVM],
       });
       // Update chain configuration for LI.FI SDK
       config.setChains(chains);

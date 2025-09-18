@@ -218,7 +218,7 @@ const Page = () => {
 
     if (messageType === "CombinedToolCall") {
       const toolCall = message as CombinedToolCall;
-      console.log(toolCall, " Tool Call");
+      // console.log(toolCall, " Tool Call");
       const toolIcon = getToolIcon(toolCall.name);
       const name = toolCall.name.split("_")[0];
       // Attempt to find the corresponding registered action by name (actions keyed by internal id)

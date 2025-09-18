@@ -7,7 +7,16 @@ import {
   switchChain,
 } from "@wagmi/core";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import { mainnet, polygon } from "@reown/appkit/networks";
+import {
+  mainnet,
+  polygon,
+  solana,
+  avalanche,
+  optimism,
+  arbitrum,
+  berachain,
+  bsc,
+} from "@reown/appkit/networks";
 import { createConfig, EVM } from "@lifi/sdk";
 
 // Get projectId from https://cloud.reown.com
@@ -17,7 +26,16 @@ if (!projectId) {
   throw new Error("Project ID is not defined");
 }
 
-export const networks = [mainnet, polygon];
+export const networks = [
+  mainnet,
+  polygon,
+  solana,
+  optimism,
+  arbitrum,
+  avalanche,
+  berachain,
+  bsc,
+];
 
 // List of Wagmi connectors
 
