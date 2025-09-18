@@ -2,7 +2,16 @@
 
 import { projectId, wagmiAdapter } from "@/config";
 import { CopilotKit } from "@copilotkit/react-core";
-import { mainnet, polygon } from "@reown/appkit/networks";
+import {
+  mainnet,
+  polygon,
+  bsc,
+  arbitrum,
+  avalanche,
+  optimism,
+  berachain,
+  solana,
+} from "@reown/appkit/networks";
 import { createAppKit } from "@reown/appkit/react";
 import {
   QueryClient,
@@ -50,7 +59,16 @@ const metadata = {
 export const modal = createAppKit({
   adapters: [wagmiAdapter],
   projectId,
-  networks: [mainnet, polygon],
+  networks: [
+    mainnet,
+    polygon,
+    bsc,
+    arbitrum,
+    avalanche,
+    optimism,
+    berachain,
+    solana,
+  ],
   defaultNetwork: mainnet,
   metadata: metadata,
   features: {

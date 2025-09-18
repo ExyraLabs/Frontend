@@ -1,6 +1,7 @@
 import axios from "axios";
 import crypto from "crypto";
 import { getUserApiKeys } from "@/actions/keys";
+import { error } from "console";
 
 export const binanceBaseUrl = "https://fapi.binance.com/fapi/v1/";
 export const binanceAPI = "https://fapi.binance.com/fapi/v1/markPriceKlines";
@@ -355,6 +356,12 @@ export const createOrder = async (
       });
 
       console.log("Bybit order creation result:", res.data);
+      if (res.data.retMsg !== "OK") {
+        return {
+          error: true,
+          message: res.data.retMsg,
+        };
+      }
 
       return res.data.retMsg;
     } else if (exchange === "Binance") {

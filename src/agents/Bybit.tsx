@@ -229,14 +229,6 @@ export default function Bybit() {
                   stopLossPercent,
                 });
 
-                if (!address) {
-                  respond({
-                    error: true,
-                    message: `❌ Wallet not connected. Please connect your wallet first to create orders on Bybit.`,
-                  });
-                  return;
-                }
-
                 // Validate required parameters
                 if (!symbol || !side || !amount) {
                   respond({
@@ -297,7 +289,7 @@ export default function Bybit() {
                 // Calculate quantity based on amount, current price, and leverage
                 const leverageMultiplier = leverage || 1;
                 const positionValue = parseFloat(amount) * leverageMultiplier;
-                const quantity = (positionValue / currentPrice).toFixed(6);
+                const quantity = Math.floor(positionValue / currentPrice);
 
                 console.log(`[CreateOrder_Bybit] Price calculation:`, {
                   currentPrice,
@@ -313,7 +305,8 @@ export default function Bybit() {
                     const leverageResult = await changeLeverage(
                       symbol.toUpperCase(),
                       leverage,
-                      "Bybit"
+                      "Bybit",
+                      address
                     );
                     if (!leverageResult?.success) {
                       respond({
@@ -382,7 +375,7 @@ export default function Bybit() {
                 const result = await createOrder(
                   symbol.toUpperCase(),
                   normalizedSide,
-                  quantity,
+                  quantity.toString(),
                   finalTakeProfit,
                   finalStopLoss,
                   "Bybit",

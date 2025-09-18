@@ -425,7 +425,7 @@ export default function Binance() {
                 response += `📊 Symbol: ${symbol.toUpperCase()}\n`;
                 response += `📈 Side: ${normalizedSide}\n`;
                 response += `💰 Investment Amount: $${amount} USDT\n`;
-                response += `💎 Current Price: $${currentPrice.toLocaleString()}\n`;
+                response += `💎 Current Price: $${currentPrice}\n`;
                 response += `📏 Position Size: ${quantity} ${symbol.replace(
                   "USDT",
                   ""
