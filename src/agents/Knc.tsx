@@ -4,8 +4,14 @@ import { parseUnits, formatUnits } from "viem";
 import { ethers } from "ethers";
 import { useCopilotAction } from "@copilotkit/react-core";
 import axios from "axios";
-import { getContractAddressWithDecimals } from "@/lib/coingecko";
+import {
+  getContractAddressWithDecimals,
+  getAllContractAddressesWithDecimals,
+} from "@/lib/coingecko";
 import SlippageSelector from "@/components/SlippageSelector";
+import TokenSelector, { TokenOption } from "@/components/TokenSelector";
+import QuoteWithTokenSelection from "@/components/QuoteWithTokenSelection";
+import SwapWithTokenSelection from "@/components/SwapWithTokenSelection";
 import { useRewardIntegrations } from "@/hooks/useRewardIntegrations";
 import { logUserAction } from "@/actions/statistics";
 import { getTokenUsdPrice } from "@/lib/pricing";
@@ -63,31 +69,99 @@ const Knc = () => {
   const isSupportedChain = (chainId: number) => chainId === 1;
 
   // Helper function to resolve token addresses and handle native tokens
+  // Returns null if user needs to select from multiple options
   const resolveTokenAddresses = async (
     tokenInSymbol: string,
     tokenOutSymbol: string,
-    platform: string
+    platform: string,
+    selectedTokenIn?: TokenOption,
+    selectedTokenOut?: TokenOption
   ) => {
-    // Step 1: Get token addresses using CoinGecko
-    const tokenInData = await getContractAddressWithDecimals(
-      tokenInSymbol,
-      platform
-    );
-    const tokenOutData = await getContractAddressWithDecimals(
-      tokenOutSymbol,
-      platform
-    );
+    let tokenInData, tokenOutData, tokenInAddress, tokenOutAddress;
 
-    if (!tokenInData?.address || !tokenOutData?.address) {
-      throw new Error(
-        `Could not find contract addresses for ${tokenInSymbol} or ${tokenOutSymbol} on ${platform}.
+    // If tokens are already selected, use them
+    if (selectedTokenIn && selectedTokenOut) {
+      tokenInData = {
+        address: selectedTokenIn.address,
+        decimals: selectedTokenIn.decimals,
+        name: selectedTokenIn.name,
+        symbol: selectedTokenIn.symbol,
+      };
+      tokenOutData = {
+        address: selectedTokenOut.address,
+        decimals: selectedTokenOut.decimals,
+        name: selectedTokenOut.name,
+        symbol: selectedTokenOut.symbol,
+      };
+
+      tokenInAddress = selectedTokenIn.address;
+      tokenOutAddress = selectedTokenOut.address;
+    } else {
+      // Step 1: Get all token options for both symbols
+      const [tokenInOptions, tokenOutOptions] = await Promise.all([
+        getAllContractAddressesWithDecimals(tokenInSymbol, platform),
+        getAllContractAddressesWithDecimals(tokenOutSymbol, platform),
+      ]);
+
+      if (!tokenInOptions || tokenInOptions.length === 0) {
+        throw new Error(
+          `Could not find contract addresses for ${tokenInSymbol} on ${platform}.
 
 🔧 Try:
   • Use 'checkTokenPlatforms' to see available platforms
   • Verify token symbols are correct
   • Try different platform (ethereum, polygon-pos, binance-smart-chain, etc.)`
-      );
+        );
+      }
+
+      if (!tokenOutOptions || tokenOutOptions.length === 0) {
+        throw new Error(
+          `Could not find contract addresses for ${tokenOutSymbol} on ${platform}.
+
+🔧 Try:
+  • Use 'checkTokenPlatforms' to see available platforms
+  • Verify token symbols are correct
+  • Try different platform (ethereum, polygon-pos, binance-smart-chain, etc.)`
+        );
+      }
+
+      // If there's more than one option for either token, we need user selection
+      if (tokenInOptions.length > 1 || tokenOutOptions.length > 1) {
+        return {
+          needsTokenSelection: true,
+          tokenInOptions: tokenInOptions.map((token) => ({
+            ...token,
+            platform,
+          })),
+          tokenOutOptions: tokenOutOptions.map((token) => ({
+            ...token,
+            platform,
+          })),
+        };
+      }
+
+      // If only one option for each, use them directly
+      const singleTokenIn = tokenInOptions[0];
+      const singleTokenOut = tokenOutOptions[0];
+
+      tokenInData = {
+        address: singleTokenIn.address,
+        decimals: singleTokenIn.decimals,
+        name: singleTokenIn.name,
+        symbol: singleTokenIn.symbol,
+      };
+      tokenOutData = {
+        address: singleTokenOut.address,
+        decimals: singleTokenOut.decimals,
+        name: singleTokenOut.name,
+        symbol: singleTokenOut.symbol,
+      };
+
+      tokenInAddress = singleTokenIn.address;
+      tokenOutAddress = singleTokenOut.address;
     }
+
+    console.log(tokenInData, "token data");
 
     // Use native token address only if the platform matches the token symbol
     const isNativeTokenIn =
@@ -103,19 +177,21 @@ const Knc = () => {
       (tokenOutSymbol.toUpperCase() === "BNB" &&
         platform === "binance-smart-chain");
 
-    const tokenInAddress = isNativeTokenIn
-      ? "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
-      : tokenInData.address;
+    // Override with native addresses if needed
+    if (isNativeTokenIn) {
+      tokenInAddress = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+    }
 
-    const tokenOutAddress = isNativeTokenOut
-      ? "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
-      : tokenOutData.address;
+    if (isNativeTokenOut) {
+      tokenOutAddress = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+    }
 
     return {
       tokenInData,
       tokenOutData,
       tokenInAddress,
       tokenOutAddress,
+      needsTokenSelection: false,
     };
   };
 
@@ -179,16 +255,47 @@ const Knc = () => {
     tokenOutSymbol,
     amount,
     platform = "ethereum",
+    selectedTokenIn,
+    selectedTokenOut,
   }: {
     tokenInSymbol: string;
     tokenOutSymbol: string;
     amount: string;
     platform?: string;
+    selectedTokenIn?: TokenOption;
+    selectedTokenOut?: TokenOption;
   }) => {
     try {
       // Use the extracted helper function
+      const resolveResult = await resolveTokenAddresses(
+        tokenInSymbol,
+        tokenOutSymbol,
+        platform,
+        selectedTokenIn,
+        selectedTokenOut
+      );
+
+      // Check if we need token selection
+      if (resolveResult.needsTokenSelection) {
+        return {
+          needsTokenSelection: true,
+          tokenInOptions: resolveResult.tokenInOptions,
+          tokenOutOptions: resolveResult.tokenOutOptions,
+        };
+      }
+
       const { tokenInData, tokenOutData, tokenInAddress, tokenOutAddress } =
-        await resolveTokenAddresses(tokenInSymbol, tokenOutSymbol, platform);
+        resolveResult;
+
+      // Add type guards
+      if (
+        !tokenInData ||
+        !tokenOutData ||
+        !tokenInAddress ||
+        !tokenOutAddress
+      ) {
+        throw new Error("Failed to resolve token addresses");
+      }
 
       // Step 2: Convert platform to chain ID and get KyberSwap chain name
       const chainId = platformToChainId(platform);
@@ -392,20 +499,45 @@ const Knc = () => {
     amount,
     platform = "ethereum",
     slippageTolerance = DEFAULT_SLIPPAGE,
+    selectedTokenIn,
+    selectedTokenOut,
   }: {
     tokenInSymbol: string;
     tokenOutSymbol: string;
     amount: string;
     platform?: string;
     slippageTolerance?: number;
+    selectedTokenIn?: TokenOption;
+    selectedTokenOut?: TokenOption;
   }) => {
     try {
       // Step 1: Resolve token addresses using symbols
       console.log(
         `🔍 Step 1: Resolving token addresses for ${tokenInSymbol} → ${tokenOutSymbol}...`
       );
-      const { tokenInData, tokenInAddress, tokenOutAddress } =
-        await resolveTokenAddresses(tokenInSymbol, tokenOutSymbol, platform);
+      const resolveResult = await resolveTokenAddresses(
+        tokenInSymbol,
+        tokenOutSymbol,
+        platform,
+        selectedTokenIn,
+        selectedTokenOut
+      );
+
+      // Check if we need token selection
+      if (resolveResult.needsTokenSelection) {
+        return {
+          needsTokenSelection: true,
+          tokenInOptions: resolveResult.tokenInOptions,
+          tokenOutOptions: resolveResult.tokenOutOptions,
+        };
+      }
+
+      const { tokenInData, tokenInAddress, tokenOutAddress } = resolveResult;
+
+      // Add type guards
+      if (!tokenInData || !tokenInAddress || !tokenOutAddress) {
+        throw new Error("Failed to resolve token addresses");
+      }
 
       // Step 2: Convert platform to chain info
       const chainId = platformToChainId(platform);
@@ -761,62 +893,65 @@ const Knc = () => {
         required: false,
       },
     ],
-    handler: handleGetKyberSwapQuoteBySymbol,
-  });
+    renderAndWaitForResponse: ({ args, respond }) => {
+      const {
+        tokenInSymbol,
+        tokenOutSymbol,
+        amount,
+        platform = "ethereum",
+      } = args;
 
-  // Test Simple Render Action
-  useCopilotAction({
-    name: "testSlippageUI",
-    description:
-      "Test action to verify renderAndWaitForResponse and slippage UI works",
-    parameters: [],
-    renderAndWaitForResponse: ({ status, respond }) => {
-      console.log("Test status:", status);
-      console.log("Respond:", respond);
+      // Type check required parameters
+      if (!tokenInSymbol || !tokenOutSymbol || !amount) {
+        return (
+          <div className="bg-[#1A1A1A] border border-red-500/20 rounded-[20px] p-6 max-w-md w-full mx-4">
+            <div className="text-red-400 text-center">
+              ❌ Missing required parameters for quote
+            </div>
+            <button
+              onClick={() => {
+                if (respond) {
+                  (respond as (message: string) => void)(
+                    "❌ Missing required parameters for quote"
+                  );
+                }
+              }}
+              className="w-full mt-4 bg-red-500 text-white py-2 rounded-lg"
+            >
+              Close
+            </button>
+          </div>
+        );
+      }
 
       return (
-        <div className="bg-[#1A1A1A] border border-[#A9A0FF] rounded-[20px] p-6 max-w-md w-full">
-          <div className="text-white text-center mb-4">
-            🧪 Slippage UI Test (Status: {status})
-          </div>
-          <div className="text-gray-300 text-sm mb-4 text-center">
-            This tests that renderAndWaitForResponse is working correctly with
-            your UI setup.
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => {
-                if (respond) {
-                  console.log("❌ User cancelled the operation");
-                  respond("❌ User cancelled the operation");
-                }
-              }}
-              className="flex-1 bg-[#2E2E2E] text-gray-300 py-2 rounded-lg hover:bg-[#3E3E3E]"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => {
-                if (respond) {
-                  console.log("✅ User confirmed the operation");
-                  respond("✅ User confirmed the operation");
-                }
-              }}
-              className="flex-1 bg-[#A9A0FF] text-white py-2 rounded-lg hover:bg-[#9A8FFF]"
-            >
-              Confirm
-            </button>
-          </div>
-        </div>
+        <QuoteWithTokenSelection
+          tokenInSymbol={tokenInSymbol}
+          tokenOutSymbol={tokenOutSymbol}
+          amount={amount}
+          platform={platform}
+          onResult={(result: string) => {
+            if (respond) {
+              (respond as (message: string) => void)(result);
+            }
+          }}
+          onCancel={() => {
+            if (respond) {
+              (respond as (message: string) => void)(
+                "🚫 Quote cancelled by user"
+              );
+            }
+          }}
+        />
       );
     },
   });
 
-  // Execute Swap by Symbol Action (integrated with CoinGecko) - with Human-in-the-Loop Slippage Selection
+  // Execute Swap by Symbol Action (integrated with CoinGecko) - with Human-in-the-Loop Token and Slippage Selection
   useCopilotAction({
     name: "Swapping",
     description:
-      "Execute a token swap using KyberSwap Aggregator with token symbols. Shows slippage selector before execution. Avoid calling the coingecko api to avoid duplication as it is already being called in the handleGetKyberSwapQuoteBySymbol method.",
+      "Execute a token swap using KyberSwap Aggregator with token symbols. Shows token selector and slippage selector before execution. Automatically handles multiple token matches.",
     parameters: [
       {
         name: "tokenInSymbol",
@@ -843,7 +978,7 @@ const Knc = () => {
         required: false,
       },
     ],
-    renderAndWaitForResponse: ({ args, respond, status }) => {
+    renderAndWaitForResponse: ({ args, respond }) => {
       const {
         tokenInSymbol,
         tokenOutSymbol,
@@ -851,181 +986,73 @@ const Knc = () => {
         platform = "ethereum",
       } = args;
 
-      console.log("Status:", status); // Debug log
-
-      // Show different UI based on status
-      if (status === "executing") {
-        // Type check required parameters
-        if (!tokenInSymbol || !tokenOutSymbol || !amount) {
-          // Return error state as JSX
-          return (
-            <div className="bg-[#1A1A1A] border border-red-500/20 rounded-[20px] p-6 max-w-md w-full mx-4">
-              <div className="text-red-400 text-center">
-                ❌ Missing required parameters for swap execution
-              </div>
-              <button
-                onClick={() => {
-                  if (respond) {
-                    (respond as (message: string) => void)(
-                      "❌ Missing required parameters for swap execution"
-                    );
-                  }
-                }}
-                className="w-full mt-4 bg-red-500 text-white py-2 rounded-lg"
-              >
-                Close
-              </button>
-            </div>
-          );
-        }
-
-        // Show slippage selector during inProgress status
+      // Type check required parameters
+      if (!tokenInSymbol || !tokenOutSymbol || !amount) {
         return (
-          <SlippageSelector
-            tokenInSymbol={tokenInSymbol}
-            tokenOutSymbol={tokenOutSymbol}
-            amount={amount}
-            platform={platform}
-            onConfirm={async (slippageTolerance: number) => {
-              console.log("Slippage confirmed:", slippageTolerance);
-              // Execute the swap with the selected slippage
-              const result = await handleExecuteKyberSwapBySymbol({
-                tokenInSymbol,
-                tokenOutSymbol,
-                amount,
-                platform,
-                slippageTolerance,
-              });
-              if (respond) {
-                (respond as (message: string) => void)(result);
-              }
-            }}
-            onCancel={() => {
-              console.log("Swap cancelled");
-              if (respond) {
-                (respond as (message: string) => void)(
-                  "🚫 Swap cancelled by user"
-                );
-              }
-            }}
-          />
-        );
-      }
-
-      if (status === "inProgress") {
-        // Show loading state during execution
-        return (
-          <div className="bg-[#1A1A1A] border border-[#A9A0FF]/20 rounded-[20px] p-6 max-w-md w-full mx-4">
-            <div className="flex items-center justify-center gap-3 text-[#A9A0FF] mb-4">
-              <div className="w-4 h-4 border-2 border-[#A9A0FF] border-t-transparent rounded-full animate-spin"></div>
-              <div className="text-white font-medium">Executing Swap...</div>
-            </div>
-            <div className="text-gray-400 text-sm text-center mb-4">
-              Processing {amount} {tokenInSymbol} → {tokenOutSymbol} on{" "}
-              {platform}
+          <div className="bg-[#1A1A1A] border border-red-500/20 rounded-[20px] p-6 max-w-md w-full mx-4">
+            <div className="text-red-400 text-center">
+              ❌ Missing required parameters for swap execution
             </div>
             <button
               onClick={() => {
                 if (respond) {
                   (respond as (message: string) => void)(
-                    "🚫 Swap cancelled by user"
+                    "❌ Missing required parameters for swap execution"
                   );
                 }
               }}
-              className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition-colors"
+              className="w-full mt-4 bg-red-500 text-white py-2 rounded-lg"
             >
-              Cancel
+              Close
             </button>
           </div>
         );
       }
 
-      if (status === "complete") {
-        // Show completion state (this will be brief before result is shown)
-        return (
-          <div className="bg-[#1A1A1A] border border-green-500/20 rounded-[20px] p-6 max-w-md w-full mx-4">
-            <div className="flex items-center justify-center gap-3 text-green-400">
-              <div className="text-lg">✅</div>
-              <div className="text-white font-medium">Swap Complete!</div>
-            </div>
-          </div>
-        );
-      }
-
-      // Fallback for any other status
       return (
-        <div className="bg-[#1A1A1A] border border-gray-500/20 rounded-[20px] p-6 max-w-md w-full mx-4">
-          <div className="text-gray-400 text-center">
-            Preparing swap... (Status: {status})
-          </div>
-        </div>
+        <SwapWithTokenSelection
+          tokenInSymbol={tokenInSymbol}
+          tokenOutSymbol={tokenOutSymbol}
+          amount={amount}
+          platform={platform}
+          onResult={(result: string) => {
+            if (respond) {
+              (respond as (message: string) => void)(result);
+            }
+          }}
+          onCancel={() => {
+            if (respond) {
+              (respond as (message: string) => void)(
+                "🚫 Swap cancelled by user"
+              );
+            }
+          }}
+        />
       );
     },
   });
 
-  // Execute Swap Action (renamed and updated to use symbols)
-  // useCopilotAction({
-  //   name: "executeKyberSwap",
-  //   description:
-  //     "Execute a token swap using KyberSwap Aggregator with token symbols. This performs the actual on-chain transaction.",
-  //   parameters: [
-  //     {
-  //       name: "tokenInSymbol",
-  //       type: "string",
-  //       description: "Input token symbol (e.g., 'ETH', 'USDC', 'BTC')",
-  //       required: true,
-  //     },
-  //     {
-  //       name: "tokenOutSymbol",
-  //       type: "string",
-  //       description: "Output token symbol (e.g., 'USDC', 'ETH', 'DAI')",
-  //       required: true,
-  //     },
-  //     {
-  //       name: "amount",
-  //       type: "string",
-  //       description:
-  //         "Amount of input token to swap (in token units, e.g., '1.0' for 1 token)",
-  //       required: true,
-  //     },
-  //     {
-  //       name: "platform",
-  //       type: "string",
-  //       description: "Blockchain platform (default: 'ethereum')",
-  //       required: false,
-  //     },
-  //     {
-  //       name: "slippageTolerance",
-  //       type: "number",
-  //       description:
-  //         "Slippage tolerance in bips (e.g., 50 = 0.5%, 100 = 1%). Default: 50",
-  //       required: false,
-  //     },
-  //   ],
-  //   handler: handleExecuteKyberSwapBySymbol,
-  // });
+  const testSwap = async () => {
+    const result = await handleGetKyberSwapQuoteBySymbol({
+      tokenOutSymbol: "AGT",
+      tokenInSymbol: "BNB",
+      amount: "0.005",
+      // slippageTolerance: 50,
+      platform: "binance-smart-chain",
+    });
 
-  // const testSwap = async () => {
-  //   const result = await handleExecuteKyberSwapBySymbol({
-  //     tokenOutSymbol: "MATIC",
-  //     tokenInSymbol: "USDC",
-  //     amount: "2",
-  //     slippageTolerance: 50,
-  //     platform: "ethereum",
-  //   });
-
-  //   console.log(result);
-  // };
+    console.log(result);
+  };
 
   // Test UI Component
   return (
-    // <button
-    //   onClick={testSwap}
-    //   className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg p-3 transition-colors text-sm font-medium"
-    // >
-    //   🔒 MEV Protection
-    // </button>
-    null
+    <button
+      onClick={testSwap}
+      className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg p-3 transition-colors text-sm font-medium"
+    >
+      🔒 MEV Protection
+    </button>
+    // null
   );
 };
 

@@ -257,7 +257,11 @@ export async function findCoinsBySymbolWithDecimals(
   const coinsWithDecimals = await Promise.all(
     matchingCoins.map(async (coin) => {
       const coinWithDecimals = await findCoinByIdWithDecimals(coin.id);
-      return coinWithDecimals || coin;
+      // Always use the symbol from the original coin object
+      if (coinWithDecimals) {
+        return { ...coinWithDecimals, symbol: coin.symbol };
+      }
+      return coin;
     })
   );
 
@@ -384,6 +388,93 @@ export async function searchCoinsByName(
 }
 
 /**
+ * Get all contract addresses and decimals for tokens matching a symbol on a platform
+ * Returns all matches instead of just the first one
+ */
+export async function getAllContractAddressesWithDecimals(
+  symbol: string,
+  platform: string = "ethereum"
+): Promise<Array<{
+  id: string;
+  address: string;
+  decimals?: number;
+  name: string;
+  symbol: string;
+}> | null> {
+  // Return default values for ETH without API call
+  if (symbol.toLowerCase() === "eth") {
+    return [
+      {
+        id: "ethereum",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", // ETH native address
+        decimals: 18,
+        name: "Ethereum",
+        symbol: "ETH",
+      },
+    ];
+  }
+
+  if (symbol.toLowerCase() === "usdt") {
+    if (platform === "binance-smart-chain" || platform === "bsc") {
+      return [
+        {
+          id: "tether",
+          symbol: "USDT",
+          name: "Binance Bridged USDT (BNB Smart Chain)",
+          address: "0x55d398326f99059ff775485246999027b3197955",
+          decimals: 18,
+        },
+      ];
+    }
+  }
+
+  // Return default values for BNB without API call
+  if (symbol.toLowerCase() === "bnb") {
+    // Check if the platform is Binance Smart Chain
+    if (platform === "binance-smart-chain" || platform === "bsc") {
+      return [
+        {
+          id: "binancecoin",
+          address: "0x0000000000000000000000000000000000000000", // BNB native address on BSC
+          decimals: 18,
+          name: "BNB",
+          symbol: "BNB",
+        },
+      ];
+    }
+    // For Ethereum platform, return the wrapped BNB contract
+    if (platform === "ethereum") {
+      return [
+        {
+          id: "binancecoin",
+          address: "0xB8c77482e45F1F44dE1745F52C74426C631bDD52", // BNB token on Ethereum
+          decimals: 18,
+          name: "BNB",
+          symbol: "BNB",
+        },
+      ];
+    }
+  }
+
+  const coins = await findCoinsBySymbolWithDecimals(symbol, platform);
+
+  // Return all coins that have the platform, not just the first one
+  const validCoins = coins.filter((coin) => coin.platforms[platform]);
+
+  if (validCoins.length === 0) {
+    return null;
+  }
+
+  return validCoins.map((coin) => ({
+    id: coin.id,
+    address: coin.platforms[platform],
+    decimals: coin.decimals,
+    name: coin.name,
+    symbol: coin.symbol,
+  }));
+}
+
+/**
  * Get contract address and decimals for a specific token on a specific platform
  */
 export async function getContractAddressWithDecimals(
@@ -403,6 +494,38 @@ export async function getContractAddressWithDecimals(
       name: "Ethereum",
       symbol: "ETH",
     };
+  }
+  if (symbol.toLowerCase() === "usdt") {
+    if (platform === "binance-smart-chain" || platform === "bsc") {
+      return {
+        symbol: "USDT",
+        name: "Binance Bridged USDT (BNB Smart Chain)",
+
+        address: "0x55d398326f99059ff775485246999027b3197955",
+      };
+    }
+  }
+
+  // Return default values for BNB without API call
+  if (symbol.toLowerCase() === "bnb") {
+    // Check if the platform is Binance Smart Chain
+    if (platform === "binance-smart-chain" || platform === "bsc") {
+      return {
+        address: "0x0000000000000000000000000000000000000000", // BNB native address on BSC
+        decimals: 18,
+        name: "BNB",
+        symbol: "BNB",
+      };
+    }
+    // For Ethereum platform, return the wrapped BNB contract
+    if (platform === "ethereum") {
+      return {
+        address: "0xB8c77482e45F1F44dE1745F52C74426C631bDD52", // BNB token on Ethereum
+        decimals: 18,
+        name: "BNB",
+        symbol: "BNB",
+      };
+    }
   }
 
   const coins = await findCoinsBySymbolWithDecimals(symbol, platform);
@@ -504,14 +627,79 @@ export async function getAvailablePlatforms(symbol: string): Promise<string[]> {
 // fetchCoinDetails("skyops").then((res) => console.log(res, "skyops details"));
 
 /**
- * Fetch the image URL for a coin by symbol
+ * Fetch the image URL for a coin by coin ID
  * Returns the large image URL if available, otherwise null
  */
-export async function fetchCoinImage(symbol: string): Promise<string | null> {
+export async function fetchCoinImageById(
+  coinId: string
+): Promise<string | null> {
+  const coinDetails = await fetchCoinDetails(coinId);
+  return coinDetails?.image?.large || null;
+}
+
+/**
+ * Fetch the image URL for a coin by symbol and optionally by name for disambiguation
+ * Returns the large image URL if available, otherwise null
+ */
+export async function fetchCoinImage(
+  symbol: string,
+  name?: string
+): Promise<string | null> {
   const coins = await findCoinsBySymbol(symbol);
   if (coins.length === 0) return null;
-  const coinDetails = await fetchCoinDetails(coins[0].id);
+
+  let targetCoin = coins[0]; // Default fallback
+
+  // If name is provided, try to find a more specific match
+  if (name && coins.length > 1) {
+    // First try exact name match (case insensitive)
+    const exactMatch = coins.find(
+      (coin) => coin.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (exactMatch) {
+      targetCoin = exactMatch;
+    } else {
+      // Try partial name match
+      const partialMatch = coins.find(
+        (coin) =>
+          coin.name.toLowerCase().includes(name.toLowerCase()) ||
+          name.toLowerCase().includes(coin.name.toLowerCase())
+      );
+
+      if (partialMatch) {
+        targetCoin = partialMatch;
+      }
+    }
+  }
+
+  const coinDetails = await fetchCoinDetails(targetCoin.id);
   return coinDetails?.image?.large || null;
+}
+
+/**
+ * Fetch images for multiple coins by their coin IDs
+ * Returns a map of coin ID to image URL
+ */
+export async function fetchMultipleCoinImages(
+  coinIds: string[]
+): Promise<Record<string, string | null>> {
+  const imagePromises = coinIds.map(async (coinId) => {
+    try {
+      const image = await fetchCoinImageById(coinId);
+      return { coinId, image };
+    } catch (error) {
+      console.warn(`Failed to fetch image for coin ${coinId}:`, error);
+      return { coinId, image: null };
+    }
+  });
+
+  const results = await Promise.all(imagePromises);
+
+  return results.reduce((acc, { coinId, image }) => {
+    acc[coinId] = image;
+    return acc;
+  }, {} as Record<string, string | null>);
 }
 
 // findCoinsBySymbol("AGT").then((res) => {
@@ -565,3 +753,14 @@ export async function fetchCoinsByCategory(
     tickers: [], // Market data doesn't include tickers
   }));
 }
+
+// getAllContractAddressesWithDecimals("AGT", "binance-smart-chain").then((res) =>
+//   console.log(res, "usdt bsc")
+// );
+
+// findCoinsBySymbolWithDecimals("AGT", "binance-smart-chain").then((res) =>
+//   console.log(res, "bnb coins")
+// );
+// findCoinByIdWithDecimals("aiville-governance-token").then((res) =>
+//   console.log(res, "bnb coins")
+// );
