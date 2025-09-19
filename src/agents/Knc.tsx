@@ -1046,13 +1046,13 @@ const Knc = () => {
 
   // Test UI Component
   return (
-    <button
-      onClick={testSwap}
-      className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg p-3 transition-colors text-sm font-medium"
-    >
-      🔒 MEV Protection
-    </button>
-    // null
+    // <button
+    //   onClick={testSwap}
+    //   className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg p-3 transition-colors text-sm font-medium"
+    // >
+    //   🔒 MEV Protection
+    // </button>
+    null
   );
 };
 
