@@ -14,15 +14,14 @@ import { coingecko } from "./actions";
 const createServiceAdapter = () => {
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
-
-  if (anthropicKey) {
-    return new AnthropicAdapter({
-      model: "claude-sonnet-4-20250514",
-    });
-  } else if (openaiKey) {
+  if (openaiKey) {
     console.warn("[CopilotKit] Falling back to OpenAI adapter");
     return new OpenAIAdapter({
       model: "gpt-4.1",
+    });
+  } else if (anthropicKey) {
+    return new AnthropicAdapter({
+      model: "claude-sonnet-4-20250514",
     });
   } else {
     throw new Error("No API key found for Anthropic or OpenAI");
