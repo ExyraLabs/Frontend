@@ -63,7 +63,7 @@ const WalletConnector = () => {
   return (
     <div className="flex bg-[#303131] z-50 relative wallet-connector-container  rounded-[20px] py-2  lg:py-2  gap-2 lg:gap-6 pr-[13px] pl-[13px] items-center justify-between">
       {/* Language Selector */}
-      <div className="relative">
+      <div className="hidden lg:flex relative">
         <button
           onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
           className="flex items-center gap-2 text-white hover:text-gray-300 transition-colors"
