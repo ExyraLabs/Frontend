@@ -4,6 +4,9 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { chainImageMapping } from "@/utils/constants";
 import { useChatRoomsMessages } from "../hooks/useChatRoomsMessages";
+import AgentInfoModal from "./AgentInfoModal";
+import { AGENT_TOOLS } from "@/utils/agentInfo";
+import { Icon } from "@iconify/react/dist/iconify.js";
 
 interface AgentCardProps {
   icon: string;
@@ -83,8 +86,12 @@ const AgentCard: React.FC<AgentCardProps> = ({
     // Navigate to chat with prompt as URL parameter
     router.push(`/chat/${chatId}?prompt=${encodeURIComponent(prompt)}`);
   };
+  const [showInfo, setShowInfo] = useState(false);
+
+  const tools = AGENT_TOOLS[title] || [];
+
   return (
-    <div className="bg-[#303131]  hover:border-white duration-1000 rounded-[16px] p-4 flex flex-col min-h-[350px] shadow-md border-[0.5px] border-[#303131]">
+    <div className="relative bg-[#303131]  hover:border-white duration-1000 rounded-[16px] p-4 flex flex-col min-h-[350px] shadow-md border-[0.5px] border-[#303131]">
       {/* Header */}
       <div className="h-[25%] border-b border-[#474848]  flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -204,6 +211,29 @@ const AgentCard: React.FC<AgentCardProps> = ({
           </AnimatePresence>
         </div>
       </div>
+      {/* Info Button */}
+      <button
+        type="button"
+        aria-label={`About ${title}`}
+        onClick={() => setShowInfo(true)}
+        className="cursor-pointer absolute bottom-2 right-2 w-4 h-4 rounded-full bg-[#262727] hover:bg-[#232323] border border-[#3A3B3B] flex items-center justify-center text-[#B5B5B5] hover:text-white transition-colors"
+      >
+        <Icon
+          icon="material-symbols:info-rounded"
+          className="text-[#E8BF3D]"
+          width={16}
+        />
+      </button>
+
+      <AgentInfoModal
+        isOpen={showInfo}
+        onClose={() => setShowInfo(false)}
+        icon={icon}
+        title={title}
+        subtitle={subtitle}
+        tools={tools}
+        prompts={prompts}
+      />
     </div>
   );
 };
