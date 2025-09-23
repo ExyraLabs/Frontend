@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
 }
 
 // Optional: Add rate limiting middleware
-export async function middleware() {
-  // Implement rate limiting here if needed
-  // Example: Redis-based rate limiting by IP or user ID
-  return NextResponse.next();
-}
+// export async function middleware() {
+//   // Implement rate limiting here if needed
+//   // Example: Redis-based rate limiting by IP or user ID
+//   return NextResponse.next();
+// }
