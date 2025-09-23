@@ -43,10 +43,18 @@ const Header = () => {
             type="button"
             aria-label="Open API keys modal"
             onClick={() => setKeysOpen(true)}
-            className="rounded-md text-sm flex items-center cursor-pointer border border-white/10 bg-white/5 p-2 text-white hover:bg-white/10"
+            className="rounded-md lg:flex hidden text-sm  items-center cursor-pointer border border-white/10 bg-white/5 p-2 text-white hover:bg-white/10"
           >
             <Icon icon="game-icons:house-keys" width={18} height={18} />
             API Keys
+          </button>
+          <button
+            type="button"
+            aria-label="Open API keys modal"
+            onClick={() => setKeysOpen(true)}
+            className="rounded-md lg:hidden text-sm flex items-center cursor-pointer border border-white/10 bg-white/5 p-2 text-white hover:bg-white/10"
+          >
+            <Icon icon="game-icons:house-keys" width={18} height={18} />
           </button>
           <WalletConnector />
         </div>

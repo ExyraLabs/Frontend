@@ -125,6 +125,7 @@ const WalletConnector = () => {
           src="/icons/wallet.svg"
           alt="Wallet Icon"
           width={20}
+          className="lg:flex hidden"
           height={20}
         />
 
