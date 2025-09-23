@@ -2,6 +2,7 @@
 import ConnectWalletModal from "@/components/ConnectWalletModal";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import Toast from "@/components/Toast";
+import VoiceRecordingButton from "@/components/VoiceRecordingButton";
 import { ToolRenderer } from "@/components/ToolRenderer";
 import { useChatRoomsMessages } from "@/hooks/useChatRoomsMessages";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
@@ -119,6 +120,21 @@ const Page = () => {
   const handleSendMessage = () => {
     // sendMessage performs limit check and increments count
     sendMessage(inputValue);
+  };
+
+  const handleVoiceTranscription = (
+    transcript: string,
+    autoSend: boolean = false
+  ) => {
+    if (transcript.trim()) {
+      if (autoSend) {
+        // Auto-send the voice message
+        sendMessage(transcript);
+      } else {
+        // Just populate the input field
+        setInputValue(transcript);
+      }
+    }
   };
 
   // Create a display-only version of messages that combines tool calls for UI
@@ -702,7 +718,15 @@ const Page = () => {
             }
           }}
         ></textarea>
-        <div className="flex w-full justify-end items-center">
+        <div className="flex w-full justify-between items-center">
+          {/* Voice Recording Button */}
+          <div className="flex items-center relative group">
+            <VoiceRecordingButton
+              onTranscriptionComplete={handleVoiceTranscription}
+              size="md"
+            />
+          </div>
+
           <div className="flex items-center gap-3 relative">
             {/* Message Counter and Tooltip */}
             <div className="flex items-center gap-1 relative">

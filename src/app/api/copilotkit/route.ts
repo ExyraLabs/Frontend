@@ -15,7 +15,6 @@ const createServiceAdapter = () => {
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
   if (openaiKey) {
-    console.warn("[CopilotKit] Falling back to OpenAI adapter");
     return new OpenAIAdapter({
       model: "gpt-4.1",
     });
