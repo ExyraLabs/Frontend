@@ -408,6 +408,9 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
         }`}
         onClick={() => {
           router.push(`/chat/${chatId}`);
+          if (isMobile && onClose) {
+            onClose();
+          }
           if (showInModal) {
             setShowSearchModal(false);
             setSearchQuery("");
