@@ -904,7 +904,7 @@ const Knc = () => {
       // Type check required parameters
       if (!tokenInSymbol || !tokenOutSymbol || !amount) {
         return (
-          <div className="bg-[#1A1A1A] border border-red-500/20 rounded-[20px] p-6 max-w-md w-full mx-4">
+          <div className="bg-[#1A1A1A] border border-red-500/20 rounded-[20px] p-6 max-w-md w-[90vw] mx-4">
             <div className="text-red-400 text-center">
               ❌ Missing required parameters for quote
             </div>
@@ -989,7 +989,7 @@ const Knc = () => {
       // Type check required parameters
       if (!tokenInSymbol || !tokenOutSymbol || !amount) {
         return (
-          <div className="bg-[#1A1A1A] border border-red-500/20 rounded-[20px] p-6 max-w-md w-full mx-4">
+          <div className="bg-[#1A1A1A] border border-red-500/20 rounded-[20px] p-6 max-w-md w-[90vw] mx-4">
             <div className="text-red-400 text-center">
               ❌ Missing required parameters for swap execution
             </div>

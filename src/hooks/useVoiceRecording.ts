@@ -78,6 +78,34 @@ declare global {
   }
 }
 
+// Helper function to detect the best supported audio MIME type for MediaRecorder
+const getBestSupportedMimeType = (): {
+  mimeType: string;
+  extension: string;
+} => {
+  // Order of preference: prioritize mobile-friendly formats first, then desktop formats
+  const mimeTypes = [
+    { mimeType: "audio/mp4", extension: "mp4" },
+    { mimeType: "audio/mpeg", extension: "mp3" },
+    { mimeType: "audio/wav", extension: "wav" },
+    { mimeType: "audio/webm;codecs=opus", extension: "webm" },
+    { mimeType: "audio/webm", extension: "webm" },
+    { mimeType: "audio/ogg;codecs=opus", extension: "ogg" },
+    { mimeType: "audio/ogg", extension: "ogg" },
+  ];
+
+  for (const type of mimeTypes) {
+    if (MediaRecorder.isTypeSupported(type.mimeType)) {
+      console.log(`Selected MIME type: ${type.mimeType}`);
+      return type;
+    }
+  }
+
+  // Fallback - this should rarely happen on modern browsers
+  console.warn("No supported MIME types found, using default");
+  return { mimeType: "", extension: "webm" };
+};
+
 // Production speech-to-text for Firefox using external services
 const transcribeAudioFirefox = async (audioBlob: Blob): Promise<string> => {
   console.log(
@@ -443,10 +471,74 @@ export const useVoiceRecording = ({
         const isFirefox = navigator.userAgent.toLowerCase().includes("firefox");
 
         // Firefox doesn't support Web Speech API, but we can use MediaRecorder + external service
+        // Most wallet in-app browsers also don't support Web Speech API, so treat them like Firefox
+        const isMetaMask = navigator.userAgent.includes("MetaMask");
+        const isPhantom = navigator.userAgent.includes("Phantom");
+        const isTrustWallet =
+          navigator.userAgent.includes("Trust") ||
+          navigator.userAgent.includes("TrustWallet");
+        const isCoinbaseWallet =
+          navigator.userAgent.includes("CoinbaseWallet") ||
+          navigator.userAgent.includes("Coinbase");
+        const isRainbowWallet = navigator.userAgent.includes("Rainbow");
+        const isArgentWallet = navigator.userAgent.includes("Argent");
+        const isImTokenWallet = navigator.userAgent.includes("imToken");
+        const is1inchWallet = navigator.userAgent.includes("1inch");
+        const isTokenPocket = navigator.userAgent.includes("TokenPocket");
+        const isMathWallet = navigator.userAgent.includes("MathWallet");
+        const isSafepalWallet = navigator.userAgent.includes("SafePal");
+        const isWalletConnect = navigator.userAgent.includes("WalletConnect");
+
+        const isWalletBrowser =
+          isMetaMask ||
+          isPhantom ||
+          isTrustWallet ||
+          isCoinbaseWallet ||
+          isRainbowWallet ||
+          isArgentWallet ||
+          isImTokenWallet ||
+          is1inchWallet ||
+          isTokenPocket ||
+          isMathWallet ||
+          isSafepalWallet ||
+          isWalletConnect;
+
+        const shouldUseFirefoxMode =
+          (isFirefox && !hasWebSpeechAPI) ||
+          (isWalletBrowser && !hasWebSpeechAPI);
+
         const isSupported =
-          (hasWebSpeechAPI || (isFirefox && hasMediaRecorder)) &&
+          (hasWebSpeechAPI ||
+            ((isFirefox || isWalletBrowser) && hasMediaRecorder)) &&
           hasGetUserMedia &&
           isSecureContext;
+
+        // Determine which wallet browser was detected
+        const detectedWallet = isMetaMask
+          ? "MetaMask"
+          : isPhantom
+          ? "Phantom"
+          : isTrustWallet
+          ? "Trust Wallet"
+          : isCoinbaseWallet
+          ? "Coinbase Wallet"
+          : isRainbowWallet
+          ? "Rainbow"
+          : isArgentWallet
+          ? "Argent"
+          : isImTokenWallet
+          ? "imToken"
+          : is1inchWallet
+          ? "1inch"
+          : isTokenPocket
+          ? "TokenPocket"
+          : isMathWallet
+          ? "MathWallet"
+          : isSafepalWallet
+          ? "SafePal"
+          : isWalletConnect
+          ? "WalletConnect"
+          : null;
 
         console.log("Voice recording support check:", {
           hasWebSpeechAPI,
@@ -454,6 +546,9 @@ export const useVoiceRecording = ({
           hasGetUserMedia,
           isSecureContext,
           isFirefox,
+          isWalletBrowser,
+          detectedWallet,
+          shouldUseFirefoxMode,
           isSupported,
           userAgent: navigator.userAgent,
         });
@@ -462,7 +557,7 @@ export const useVoiceRecording = ({
           ...prev,
           isSupported,
           isCheckingSupport: false,
-          isFirefoxMode: isFirefox && !hasWebSpeechAPI,
+          isFirefoxMode: shouldUseFirefoxMode,
         }));
       } catch (error) {
         console.error("Error checking voice recording support:", error);
@@ -514,8 +609,27 @@ export const useVoiceRecording = ({
         streamRef.current = null;
       }
 
+      // Check if we should be in Firefox mode (wallet browser detection)
+      const isWalletBrowser =
+        navigator.userAgent.includes("MetaMask") ||
+        navigator.userAgent.includes("Phantom") ||
+        navigator.userAgent.includes("Trust") ||
+        navigator.userAgent.includes("CoinbaseWallet") ||
+        navigator.userAgent.includes("Rainbow") ||
+        navigator.userAgent.includes("Argent") ||
+        navigator.userAgent.includes("imToken") ||
+        navigator.userAgent.includes("1inch") ||
+        navigator.userAgent.includes("TokenPocket") ||
+        navigator.userAgent.includes("MathWallet") ||
+        navigator.userAgent.includes("SafePal") ||
+        navigator.userAgent.includes("WalletConnect");
+      const hasWebSpeechAPI =
+        "webkitSpeechRecognition" in window || "SpeechRecognition" in window;
+      // AGGRESSIVE FIX: Force Firefox mode for any wallet browser, regardless of Web Speech API detection
+      const actualFirefoxMode = state.isFirefoxMode || isWalletBrowser;
+
       // Set processing state only on non-Firefox; Firefox flow handles processing in onstop
-      if (!state.isFirefoxMode) {
+      if (!actualFirefoxMode) {
         setState((prev) => ({
           ...prev,
           isProcessing: true,
@@ -526,11 +640,12 @@ export const useVoiceRecording = ({
       }
 
       // For Chrome/Safari, process immediately
-      if (!state.isFirefoxMode) {
+      if (!actualFirefoxMode) {
         setTimeout(() => {
           setState((prev) => {
             const currentTranscript = prev.transcript.trim();
             console.log(currentTranscript, "auto-submit:");
+
             if (
               currentTranscript &&
               !currentTranscript.includes("Recording...")
@@ -603,6 +718,82 @@ export const useVoiceRecording = ({
 
   const startRecording = useCallback(async () => {
     if (debug) console.debug("[voice] startRecording requested");
+
+    // Check for wallet browser and force Firefox mode if needed
+    const isWalletBrowser =
+      navigator.userAgent.includes("MetaMask") ||
+      navigator.userAgent.includes("Phantom") ||
+      navigator.userAgent.includes("Trust") ||
+      navigator.userAgent.includes("CoinbaseWallet") ||
+      navigator.userAgent.includes("Rainbow") ||
+      navigator.userAgent.includes("Argent") ||
+      navigator.userAgent.includes("imToken") ||
+      navigator.userAgent.includes("1inch") ||
+      navigator.userAgent.includes("TokenPocket") ||
+      navigator.userAgent.includes("MathWallet") ||
+      navigator.userAgent.includes("SafePal") ||
+      navigator.userAgent.includes("WalletConnect");
+
+    // Force Firefox mode for any wallet browser
+    const shouldForceFirefoxMode = isWalletBrowser;
+
+    // OVERRIDE: Force Firefox mode for wallet browsers
+    const actualFirefoxMode = shouldForceFirefoxMode || state.isFirefoxMode;
+
+    // Prevent multiple simultaneous recordings - clean up existing one first
+    if (streamRef.current || state.isRecording) {
+      console.log("Cleaning up existing recording before starting new one");
+
+      // Clean up existing stream
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+
+      // Clean up existing audio context
+      if (audioContextRef.current) {
+        try {
+          if (workletNodeRef.current) {
+            workletNodeRef.current.disconnect();
+            workletNodeRef.current.port.onmessage = () => {};
+            workletNodeRef.current = null;
+          }
+          if (analyserRef.current) {
+            analyserRef.current.disconnect();
+            analyserRef.current = null;
+          }
+        } catch {}
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+
+      // Stop recognition if active
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+        recognitionRef.current = null;
+      }
+
+      // Stop media recorder if active
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== "inactive"
+      ) {
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current = null;
+      }
+
+      // Clear timeouts
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+        silenceTimeoutRef.current = null;
+      }
+
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+    }
+
     // Reset buffers and flags
     audioLevelsRef.current = [];
     recordingStartTsRef.current = Date.now();
@@ -631,12 +822,33 @@ export const useVoiceRecording = ({
     });
 
     try {
+      // Use more conservative audio constraints for better mobile compatibility
+      const isMobile =
+        /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        );
+      const audioConstraints = isMobile
+        ? {
+            // More conservative settings for mobile devices
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          }
+        : {
+            // Desktop settings with more options
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 44100,
+          };
+
+      console.log(
+        `Requesting audio with ${isMobile ? "mobile" : "desktop"} constraints:`,
+        audioConstraints
+      );
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100,
-        },
+        audio: audioConstraints,
       });
       streamRef.current = stream;
 
@@ -653,13 +865,14 @@ export const useVoiceRecording = ({
       // Start audio analysis for real-time visualization and silence detection
       startAudioAnalysis(stream);
 
-      if (state.isFirefoxMode) {
+      if (actualFirefoxMode) {
         // Firefox mode: Use MediaRecorder only
         console.log("Starting Firefox recording mode with MediaRecorder");
 
-        if (MediaRecorder.isTypeSupported("audio/webm")) {
+        const supportedType = getBestSupportedMimeType();
+        if (supportedType.mimeType) {
           const mediaRecorder = new MediaRecorder(stream, {
-            mimeType: "audio/webm",
+            mimeType: supportedType.mimeType,
           });
 
           mediaRecorderRef.current = mediaRecorder;
@@ -679,7 +892,7 @@ export const useVoiceRecording = ({
               return;
             }
             const audioBlob = new Blob(chunksRef.current, {
-              type: "audio/webm",
+              type: supportedType.mimeType,
             });
             setState((prev) => ({
               ...prev,
@@ -689,6 +902,7 @@ export const useVoiceRecording = ({
 
             try {
               const transcript = await transcribeAudioFirefox(audioBlob);
+
               setState((prev) => ({
                 ...prev,
                 transcript,
@@ -732,6 +946,24 @@ export const useVoiceRecording = ({
             transcript:
               "Recording... (Firefox mode: limited speech recognition support)",
           }));
+        } else {
+          // No supported MIME type found
+          const errorMsg =
+            "MediaRecorder not supported: no compatible audio format found";
+          console.error(errorMsg);
+          setState((prev) => ({
+            ...prev,
+            error: errorMsg,
+            isRecording: false,
+          }));
+          onError?.(errorMsg);
+
+          // Clean up the stream
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach((track) => track.stop());
+            streamRef.current = null;
+          }
+          return;
         }
       } else {
         // Chrome/Safari mode: Use Web Speech API + MediaRecorder backup
@@ -741,9 +973,10 @@ export const useVoiceRecording = ({
           recognition.start();
         }
 
-        if (MediaRecorder.isTypeSupported("audio/webm")) {
+        const supportedType = getBestSupportedMimeType();
+        if (supportedType.mimeType) {
           const mediaRecorder = new MediaRecorder(stream, {
-            mimeType: "audio/webm",
+            mimeType: supportedType.mimeType,
           });
 
           mediaRecorderRef.current = mediaRecorder;
@@ -756,6 +989,12 @@ export const useVoiceRecording = ({
           };
 
           mediaRecorder.start(100);
+        } else {
+          // No supported MIME type found
+          console.warn(
+            "MediaRecorder not supported: no compatible audio format found"
+          );
+          // Continue without MediaRecorder backup, rely on Web Speech API only
         }
       }
     } catch (error) {
@@ -773,6 +1012,7 @@ export const useVoiceRecording = ({
     onError,
     onTranscriptionComplete,
     state.isFirefoxMode,
+    state.isRecording,
     startAudioAnalysis,
     debug,
   ]);
@@ -780,6 +1020,7 @@ export const useVoiceRecording = ({
   const stopRecording = useCallback(() => {
     if (debug)
       console.debug(`[voice] stopRecording (reason=${stopReasonRef.current})`);
+
     stopReasonRef.current = "manual";
     // cancel RAF loop
     if (rafIdRef.current !== null) {
@@ -828,7 +1069,26 @@ export const useVoiceRecording = ({
       streamRef.current = null;
     }
 
-    if (!state.isFirefoxMode) {
+    // Check if we should use Firefox mode (for wallet browsers)
+    const isWalletBrowser =
+      navigator.userAgent.includes("MetaMask") ||
+      navigator.userAgent.includes("Phantom") ||
+      navigator.userAgent.includes("Trust") ||
+      navigator.userAgent.includes("CoinbaseWallet") ||
+      navigator.userAgent.includes("Rainbow") ||
+      navigator.userAgent.includes("Argent") ||
+      navigator.userAgent.includes("imToken") ||
+      navigator.userAgent.includes("1inch") ||
+      navigator.userAgent.includes("TokenPocket") ||
+      navigator.userAgent.includes("MathWallet") ||
+      navigator.userAgent.includes("SafePal") ||
+      navigator.userAgent.includes("WalletConnect");
+    const hasWebSpeechAPI =
+      "webkitSpeechRecognition" in window || "SpeechRecognition" in window;
+    // AGGRESSIVE FIX: Force Firefox mode for ANY wallet browser
+    const actualFirefoxMode = state.isFirefoxMode || isWalletBrowser;
+
+    if (!actualFirefoxMode) {
       // For Chrome/Safari, process immediately and auto-send
       setTimeout(() => {
         setState((prev) => {
@@ -850,8 +1110,8 @@ export const useVoiceRecording = ({
         });
       }, 500);
     }
-    // For Firefox, processing happens in mediaRecorder.onstop
-  }, [onTranscriptionComplete, state.isFirefoxMode, debug]);
+    // For Firefox/Wallet browsers, processing happens in mediaRecorder.onstop
+  }, [onTranscriptionComplete, state.isFirefoxMode, state.transcript, debug]);
 
   const clearTranscript = useCallback(() => {
     setState((prev) => ({ ...prev, transcript: "", error: null }));

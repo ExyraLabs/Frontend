@@ -72,7 +72,7 @@ const AaveUi = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="bg-red-900 border border-red-700 rounded-lg p-6 max-w-md w-full">
+        <div className="bg-red-900 border border-red-700 rounded-lg p-6 max-w-md w-[90vw]">
           <div className="text-red-400">
             <h3 className="text-lg font-medium">Error Loading Data</h3>
             <p className="mt-2">{(error as Error).message}</p>

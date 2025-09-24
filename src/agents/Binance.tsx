@@ -156,7 +156,7 @@ export default function Binance() {
       // Show loading state during execution
       if (status === "inProgress") {
         return (
-          <div className="bg-[#1A1A1A] border border-gray-500/20 rounded-[20px] p-6 max-w-md w-full mx-4">
+          <div className="bg-[#1A1A1A] border border-gray-500/20 rounded-[20px] p-6 max-w-md w-[90vw] mx-4">
             <div className="flex items-center justify-center space-x-2">
               <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
               <span className="text-white">Creating Binance order...</span>
@@ -170,7 +170,7 @@ export default function Binance() {
 
       if (status === "complete") {
         return (
-          <div className="bg-[#1A1A1A] border border-green-500/20 rounded-[20px] p-6 max-w-md w-full mx-4">
+          <div className="bg-[#1A1A1A] border border-green-500/20 rounded-[20px] p-6 max-w-md w-[90vw] mx-4">
             <div className="text-center">
               <div className="text-green-400 text-4xl mb-2">✅</div>
               <div className="text-white font-semibold">
@@ -186,7 +186,7 @@ export default function Binance() {
         // Type check required parameters
         if (!symbol || !side || !amount) {
           return (
-            <div className="bg-[#1A1A1A] border border-red-500/20 rounded-[20px] p-6 max-w-md w-full mx-4">
+            <div className="bg-[#1A1A1A] border border-red-500/20 rounded-[20px] p-6 max-w-md w-[90vw] mx-4">
               <div className="text-center">
                 <div className="text-red-400 text-2xl mb-2">❌</div>
                 <div className="text-white">Missing required parameters</div>
@@ -477,7 +477,7 @@ export default function Binance() {
 
       // Fallback for any other status
       return (
-        <div className="bg-[#1A1A1A] border border-gray-500/20 rounded-[20px] p-6 max-w-md w-full mx-4">
+        <div className="bg-[#1A1A1A] border border-gray-500/20 rounded-[20px] p-6 max-w-md w-[90vw] mx-4">
           <div className="text-center text-white">
             Preparing order confirmation...
           </div>

@@ -158,7 +158,7 @@ const QuoteWithTokenSelection = ({
 
   if (isLoading) {
     return (
-      <div className="bg-[#1A1A1A] border border-[#A9A0FF]/20 rounded-[20px] p-6 max-w-md w-full mx-4">
+      <div className="bg-[#1A1A1A] border border-[#A9A0FF]/20 rounded-[20px] p-6 max-w-md w-[90vw] mx-4">
         <div className="flex items-center justify-center gap-3 text-[#A9A0FF] mb-4">
           <div className="w-4 h-4 border-2 border-[#A9A0FF] border-t-transparent rounded-full animate-spin"></div>
           <div className="text-white font-medium">Initializing Quote...</div>
@@ -205,7 +205,7 @@ const QuoteWithTokenSelection = ({
 
   if (currentSelection === "complete" && selectedTokenIn && selectedTokenOut) {
     return (
-      <div className="bg-[#1A1A1A] border border-[#A9A0FF]/20 rounded-[20px] p-6 max-w-md w-full mx-4">
+      <div className="bg-[#1A1A1A] border border-[#A9A0FF]/20 rounded-[20px] p-6 max-w-md w-[90vw] mx-4">
         <div className="flex items-center justify-center gap-3 text-[#A9A0FF] mb-4">
           <div className="w-4 h-4 border-2 border-[#A9A0FF] border-t-transparent rounded-full animate-spin"></div>
           <div className="text-white font-medium">Getting Quote...</div>

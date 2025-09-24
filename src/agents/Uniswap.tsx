@@ -595,7 +595,7 @@ const Uniswap = () => {
         if (!tokenInSymbol || !tokenOutSymbol || !amount) {
           // Return error state as JSX
           return (
-            <div className="bg-[#1A1A1A] border border-red-500/20 rounded-[20px] p-6 max-w-md w-full mx-4">
+            <div className="bg-[#1A1A1A] border border-red-500/20 rounded-[20px] p-6 max-w-md w-[90vw] mx-4">
               <div className="text-red-400 text-center">
                 ❌ Missing required parameters for swap execution
               </div>
@@ -659,7 +659,7 @@ const Uniswap = () => {
       if (status === "inProgress") {
         // Show loading state during execution
         return (
-          <div className="bg-[#1A1A1A] border border-[#A9A0FF]/20 rounded-[20px] p-6 max-w-md w-full mx-4">
+          <div className="bg-[#1A1A1A] border border-[#A9A0FF]/20 rounded-[20px] p-6 max-w-md w-[90vw] mx-4">
             <div className="flex items-center justify-center gap-3 text-[#A9A0FF]">
               <div className="w-4 h-4 border-2 border-[#A9A0FF] border-t-transparent rounded-full animate-spin"></div>
               <div className="text-white font-medium">Executing Swap...</div>
@@ -688,7 +688,7 @@ const Uniswap = () => {
       if (status === "complete") {
         // Show completion state (this will be brief before result is shown)
         return (
-          <div className="bg-[#1A1A1A] border border-green-500/20 rounded-[20px] p-6 max-w-md w-full mx-4">
+          <div className="bg-[#1A1A1A] border border-green-500/20 rounded-[20px] p-6 max-w-md w-[90vw] mx-4">
             <div className="flex items-center justify-center gap-3 text-green-400">
               <div className="text-lg">✅</div>
               <div className="text-white font-medium">Swap Complete!</div>
@@ -699,7 +699,7 @@ const Uniswap = () => {
 
       // Fallback for any other status
       return (
-        <div className="bg-[#1A1A1A] border border-gray-500/20 rounded-[20px] p-6 max-w-md w-full mx-4">
+        <div className="bg-[#1A1A1A] border border-gray-500/20 rounded-[20px] p-6 max-w-md w-[90vw] mx-4">
           <div className="text-gray-400 text-center">
             Preparing swap... (Status: {status})
           </div>

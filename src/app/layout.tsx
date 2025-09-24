@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import WalletProvider from "@/components/providers/WalletProvider";
 import Sidebar from "@/components/Sidebar";
 import ReduxProviders from "@/components/ReduxProviders";
+import VConsole from "@/components/VConsole";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { headers } from "next/headers";
@@ -66,6 +67,7 @@ export default async function RootLayout({
               error: { iconTheme: { primary: "#EF4444", secondary: "#fff" } },
             }}
           />
+          <VConsole />
         </ReduxProviders>
       </body>
     </html>

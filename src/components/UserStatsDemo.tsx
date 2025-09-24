@@ -104,7 +104,7 @@ export default function UserStatsDemo() {
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0F0F23] to-[#1A1A2E] flex items-center justify-center">
-        <div className="bg-[#1A1A1A] border border-[#A9A0FF]/20 rounded-[24px] p-8 max-w-md w-full mx-4">
+        <div className="bg-[#1A1A1A] border border-[#A9A0FF]/20 rounded-[24px] p-8 max-w-md w-[90vw] mx-4">
           <div className="text-center">
             <div className="w-16 h-16 bg-[#A9A0FF]/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg
@@ -139,7 +139,7 @@ export default function UserStatsDemo() {
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0F0F23] to-[#1A1A2E] flex items-center justify-center">
-        <div className="bg-[#1A1A1A] border border-red-500/20 rounded-[24px] p-8 max-w-md w-full mx-4">
+        <div className="bg-[#1A1A1A] border border-red-500/20 rounded-[24px] p-8 max-w-md w-[90vw] mx-4">
           <div className="text-center">
             <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg
@@ -187,7 +187,7 @@ export default function UserStatsDemo() {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0F0F23] to-[#1A1A2E] flex items-center justify-center">
-        <div className="bg-[#1A1A1A] border border-red-500/20 rounded-[24px] p-8 max-w-md w-full mx-4">
+        <div className="bg-[#1A1A1A] border border-red-500/20 rounded-[24px] p-8 max-w-md w-[90vw] mx-4">
           <div className="text-center">
             <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg

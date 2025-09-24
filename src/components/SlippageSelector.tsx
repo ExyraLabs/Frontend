@@ -74,7 +74,7 @@ const SlippageSelector: React.FC<SlippageSelectorProps> = ({
   };
 
   return (
-    <div className="bg-[#1A1A1A] border border-[#2E2E2E] rounded-[20px] p-6 max-w-md w-full mx-4">
+    <div className="bg-[#1A1A1A] border border-[#2E2E2E] rounded-[20px] p-6 max-w-md w-[90vw] mx-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -87,7 +87,7 @@ const SlippageSelector: React.FC<SlippageSelectorProps> = ({
         </div>
         <button
           onClick={onCancel}
-          className="text-gray-400 hover:text-white transition-colors"
+          className="text-gray-400 cursor-pointer active:scale-95 hover:text-white transition-colors"
         >
           <Image src="/icons/close.svg" alt="Close" width={20} height={20} />
         </button>
