@@ -42,6 +42,7 @@ import Knc from "@/agents/Knc";
 import AlchemyAgent from "@/agents/Alchemy";
 import Binance from "@/agents/Binance";
 import Bybit from "@/agents/Bybit";
+import DefiLlama from "@/agents/DefiLlama";
 import { getToolIcon } from "@/utils/constants";
 import SlippageSelector from "@/components/SlippageSelector";
 import TokenSelector from "@/components/TokenSelector";
@@ -804,6 +805,7 @@ const Page = () => {
       <AlchemyAgent />
       <Binance />
       <Bybit />
+      <DefiLlama />
       {/* <PancakeSwap /> */}
 
       {/* <Curve /> */}

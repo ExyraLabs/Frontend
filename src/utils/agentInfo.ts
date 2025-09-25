@@ -8,12 +8,283 @@ export type AgentKey =
   | "Alchemy SDK"
   | "Aave Protocol"
   | "Li.Fi"
+  | "DefiLlama"
   | "Binance"
   | "Bybit"
   | string;
 
 // Minimal curated metadata per agent. Extend over time.
 export const AGENT_TOOLS: Record<AgentKey, AgentTool[]> = {
+  DefiLlama: [
+    {
+      name: "getTopYieldPools",
+      description:
+        "List top yield pools with optional filters (chain, project, stablecoin-only, min TVL, limit).",
+      params: [
+        {
+          name: "chain",
+          type: "string",
+          required: false,
+          description:
+            "Restrict pools to a specific chain (e.g. 'Ethereum', 'Arbitrum', 'Base'). Case-insensitive. If omitted, all chains are scanned.",
+        },
+        {
+          name: "project",
+          type: "string",
+          required: false,
+          description:
+            "Substring match on protocol/project slug or display name (e.g. 'aave', 'curve'). Case-insensitive partial match.",
+        },
+        {
+          name: "stablecoinOnly",
+          type: "boolean",
+          required: false,
+          description:
+            "When true, only include pools tagged as stablecoin pools. Default false.",
+        },
+        {
+          name: "minTvlUsd",
+          type: "number",
+          required: false,
+          description:
+            "Ignore pools whose TVL is below this USD threshold. Default 100000 (100k).",
+        },
+        {
+          name: "limit",
+          type: "number",
+          required: false,
+          description:
+            "Maximum number of pools returned (post-filter + sort). Range 1-50. Default 10.",
+        },
+      ],
+    },
+    {
+      name: "getProtocolTvl",
+      description:
+        "Get TVL and chain breakdown for a protocol by slug (e.g., 'aave', 'curve').",
+      params: [
+        {
+          name: "protocol",
+          type: "string",
+          required: true,
+          description:
+            "Protocol slug from DefiLlama URL (e.g. 'aave', 'curve', 'uniswap'). Lowercase; spaces removed.",
+        },
+      ],
+    },
+    {
+      name: "getChainTvl",
+      description:
+        "Get TVL by chain. Optionally filter by chain name and/or limit results.",
+      params: [
+        {
+          name: "chain",
+          type: "string",
+          required: false,
+          description:
+            "Specific chain name (e.g. 'Ethereum', 'Polygon'). If omitted returns top chains ranking.",
+        },
+        {
+          name: "limit",
+          type: "number",
+          required: false,
+          description:
+            "Max chains to list when no chain filter supplied. Range 1-50. Default 10.",
+        },
+      ],
+    },
+    {
+      name: "getTokenPriceDefiLlama",
+      description:
+        "Get token price via DefiLlama coins API. Provide coingeckoId OR chain + address.",
+      params: [
+        {
+          name: "coingeckoId",
+          type: "string",
+          required: false,
+          description:
+            "CoinGecko asset id (e.g. 'ethereum', 'usd-coin'). Use this OR (chain + address). Overrides chain/address if both provided.",
+        },
+        {
+          name: "chain",
+          type: "string",
+          required: false,
+          description:
+            "Lowercase chain identifier for DefiLlama coins API (e.g. 'ethereum', 'arbitrum'). Must pair with 'address' if used.",
+        },
+        {
+          name: "address",
+          type: "string",
+          required: false,
+          description:
+            "Token contract address (0x...) on the given chain. Required if using chain mode instead of coingeckoId.",
+        },
+      ],
+    },
+    {
+      name: "listProtocols",
+      description: "List protocols with optional search, category, limit.",
+      params: [
+        {
+          name: "search",
+          type: "string",
+          required: false,
+          description:
+            "Case-insensitive substring filter on protocol name or exact symbol. Example: 'lend', 'GMX'.",
+        },
+        {
+          name: "category",
+          type: "string",
+          required: false,
+          description:
+            "Exact category match (e.g. 'Lending', 'DEXes', 'Yield').",
+        },
+        {
+          name: "chain",
+          type: "string",
+          required: false,
+          description:
+            "Only include protocols that list this chain in their supported chains (e.g. 'Tron', 'Ethereum', 'Arbitrum'). Case-insensitive exact match.",
+        },
+        {
+          name: "limit",
+          type: "number",
+          required: false,
+          description: "Maximum protocols to return. Range 1-100. Default 20.",
+        },
+      ],
+    },
+    {
+      name: "getLargestProtocolsByTvl",
+      description: "Get top protocols ranked by current TVL.",
+      params: [
+        {
+          name: "limit",
+          type: "number",
+          required: false,
+          description:
+            "Number of top protocols to return. Range 1-50. Default 10.",
+        },
+      ],
+    },
+    {
+      name: "getProtocolHistoricalTvl",
+      description: "Protocol TVL history for the last N days.",
+      params: [
+        {
+          name: "protocol",
+          type: "string",
+          required: true,
+          description: "Protocol slug (same value as used in getProtocolTvl).",
+        },
+        {
+          name: "days",
+          type: "number",
+          required: false,
+          description:
+            "Recent day count slice from the historical series. Default 30. Upper practical limit ~365.",
+        },
+      ],
+    },
+    {
+      name: "getProtocolTvlChange",
+      description: "Protocol TVL change summary (1d/7d/30d).",
+      params: [
+        {
+          name: "protocol",
+          type: "string",
+          required: true,
+          description:
+            "Protocol slug whose TVL delta windows will be summarized.",
+        },
+      ],
+    },
+    {
+      name: "getStablecoinsOverview",
+      description: "Top stablecoins by circulating supply (subset).",
+      params: [
+        {
+          name: "limit",
+          type: "number",
+          required: false,
+          description:
+            "Top N stablecoins by circulating supply to include. Range 1-50. Default 15.",
+        },
+      ],
+    },
+    {
+      name: "getStablecoinChainDistribution",
+      description: "Aggregate stablecoin circulation per chain (top N).",
+      params: [
+        {
+          name: "limit",
+          type: "number",
+          required: false,
+          description:
+            "Number of chains to include ranked by total stablecoin circulation. Range 1-50. Default 10.",
+        },
+      ],
+    },
+    {
+      name: "getTopStablecoinChains",
+      description: "Compact list of top chains by stablecoin circulation.",
+      params: [
+        {
+          name: "limit",
+          type: "number",
+          required: false,
+          description:
+            "Number of chains to list in compact format. Range 1-25. Default 5.",
+        },
+      ],
+    },
+    {
+      name: "getPoolHistoricalApy",
+      description: "Yield pool APY history (pool id from pools list).",
+      params: [
+        {
+          name: "pool",
+          type: "string",
+          required: true,
+          description:
+            "Exact 'pool' identifier string from the yields API (copy from getTopYieldPools output).",
+        },
+        {
+          name: "days",
+          type: "number",
+          required: false,
+          description:
+            "Number of recent daily points to include. Default 14. Upper practical bound ~90.",
+        },
+      ],
+    },
+    {
+      name: "getPoolCurrentApy",
+      description: "Current APY & TVL for a specific pool id.",
+      params: [
+        {
+          name: "pool",
+          type: "string",
+          required: true,
+          description:
+            "Exact 'pool' id string to summarize (same as used in historical APY).",
+        },
+      ],
+    },
+    {
+      name: "getAggregatedChainTvlSummary",
+      description: "Top chains by TVL with dominance percentages.",
+      params: [
+        {
+          name: "limit",
+          type: "number",
+          required: false,
+          description:
+            "Top N chains by TVL to include with dominance %. Range 1-30. Default 10.",
+        },
+      ],
+    },
+  ],
   "Aave Protocol": [
     {
       name: "Lend",

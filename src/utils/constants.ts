@@ -15,6 +15,24 @@ export const chainImageMapping: { [key: string]: string } = {
 
 export const AGENT_CARDS = [
   {
+    icon: "/icons/llama.jpeg",
+    title: "DefiLlama",
+    subtitle: "DeFi analytics: TVL, yields, prices",
+    category: "Research",
+    features: [
+      "Discover top yield farms across chains",
+      "Track protocol and chain TVL trends",
+      "Fetch token prices via DefiLlama",
+    ],
+    prompts: [
+      "Show top yield pools on Arbitrum with TVL > $1M",
+      "Get Aave protocol TVL and top chains",
+      "What are the highest APY stablecoin pools right now?",
+      "Get TVL ranking of top 10 chains",
+    ],
+    chains: ["Ethereum", "Arbitrum", "Optimism", "Polygon", "Base"],
+  },
+  {
     icon: "/icons/Lido.png",
     title: "Lido Finance",
     subtitle: "Liquid staking for Ethereum",
@@ -467,6 +485,22 @@ export const getToolIcon = (toolName: string): string | null => {
       "https://assets.coingecko.com/markets/images/52/small/binance.jpg",
     ChangeLeverage_Binance:
       "https://assets.coingecko.com/markets/images/52/small/binance.jpg",
+
+    // DefiLlama tools
+    getTopYieldPools: "/icons/llama.jpeg",
+    getProtocolTvl: "/icons/llama.jpeg",
+    getChainTvl: "/icons/llama.jpeg",
+    getTokenPriceDefiLlama: "/icons/llama.jpeg",
+    listProtocols: "/icons/llama.jpeg",
+    getLargestProtocolsByTvl: "/icons/llama.jpeg",
+    getProtocolHistoricalTvl: "/icons/llama.jpeg",
+    getProtocolTvlChange: "/icons/llama.jpeg",
+    getStablecoinsOverview: "/icons/llama.jpeg",
+    getStablecoinChainDistribution: "/icons/llama.jpeg",
+    getTopStablecoinChains: "/icons/llama.jpeg",
+    getPoolHistoricalApy: "/icons/llama.jpeg",
+    getPoolCurrentApy: "/icons/llama.jpeg",
+    getAggregatedChainTvlSummary: "/icons/llama.jpeg",
   };
 
   return toolIconMapping[toolName] || null;

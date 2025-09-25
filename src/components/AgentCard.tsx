@@ -96,7 +96,12 @@ const AgentCard: React.FC<AgentCardProps> = ({
       <div className="h-[25%] border-b border-[#474848]  flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 relative flex items-center justify-center rounded-full">
-            <Image src={icon} alt={title} className="rounded-full" fill />
+            <Image
+              src={icon}
+              alt={title}
+              className="rounded-full object-cover"
+              fill
+            />
           </div>
           <div>
             <div className="text-white text-lg font-semibold leading-tight">
