@@ -478,5 +478,5 @@ export default function DefiLlama() {
     console.log("Test getTopYieldPools:", res);
   };
 
-  return <button onClick={test}>Test Llama</button>;
+  return null;
 }
