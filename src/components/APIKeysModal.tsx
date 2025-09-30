@@ -411,7 +411,7 @@ export default function APIKeysModal({ isOpen, onClose }: APIKeysModalProps) {
                     <p className="text-gray-400 text-xs">
                       Add{" "}
                       <code className="bg-gray-800 px-1 py-0.5 rounded text-primary">
-                        144.172.112.71
+                        172.86.68.67
                       </code>{" "}
                       to your API whitelist
                     </p>
