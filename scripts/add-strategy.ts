@@ -105,9 +105,15 @@ async function main() {
         );
         process.exit(1);
       }
+      // Do not overwrite 'history' on update to preserve remote trade history
+      const fieldsWithoutHistory: Record<string, unknown> = Object.fromEntries(
+        Object.entries(strategyDoc).filter(
+          ([k]) => k !== "history" && k !== "createdAt"
+        )
+      );
       await strategiesCollection.updateOne(
         { strategyId: strategyDoc.strategyId },
-        { $set: { ...strategyDoc, updatedAt: new Date() } }
+        { $set: { ...fieldsWithoutHistory, updatedAt: new Date() } }
       );
       console.log(`✅ Updated existing strategy '${strategyDoc.strategyId}'.`);
     } else {

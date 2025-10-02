@@ -72,7 +72,7 @@ const Explore = () => {
       selectedChain === "All Chains" ||
       (strategy.chains && strategy.chains.includes(selectedChain));
 
-    return matchesTab && matchesChain;
+    return matchesTab && matchesChain && strategy.visibility !== "private";
   });
 
   useEffect(() => {

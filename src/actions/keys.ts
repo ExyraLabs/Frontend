@@ -1,11 +1,6 @@
 "use server";
 import clientPromise from "@/lib/mongodb";
-import {
-  encrypt,
-  decrypt,
-  encryptObject,
-  decryptObject,
-} from "@/lib/encryption";
+import { encryptObject, decryptObject } from "@/lib/encryption";
 
 export type ExchangeKeys = {
   binance: { apiKey: string; secretKey: string };
@@ -46,11 +41,13 @@ export async function uploadApiKeys({
       { upsert: true }
     );
 
+    // Only return JSON-serializable values to the client
     return {
       success: true,
       message: "API keys uploaded successfully",
       modifiedCount: result.modifiedCount,
-      upsertedId: result.upsertedId,
+      // Convert ObjectId to string if present to avoid RSC serialization errors
+      upsertedId: result.upsertedId ? String(result.upsertedId) : undefined,
     };
   } catch (error) {
     console.error("Error uploading API keys:", error);

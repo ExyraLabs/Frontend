@@ -277,6 +277,7 @@ export const STRATS_CARDS: Strategy[] = [
     tradeType: "Swing",
     pnl: 4.2,
     riskLevel: "Medium",
+    visibility: "public",
     tags: ["RSI", "Staking", "DeFi"],
     entryCriterias: ["RSI above 70", "Volume increase > 20%"],
     exitCriteria: [
@@ -289,7 +290,6 @@ export const STRATS_CARDS: Strategy[] = [
     history: [],
 
     activities: [] as { message: string; timestamp: Date }[],
-    visibility: "public",
     supportedChains: ["Ethereum", "BNB Smart Chain"],
     compatibility:
       "This strategy is only supported on Binance and Bybit Exchanges. Please add your api keys and credit your futures account for the best experience.",
@@ -307,6 +307,7 @@ export const STRATS_CARDS: Strategy[] = [
     chains: ["Ethereum", "BNB Smart Chain"],
     tradeType: "Swing",
     history: [],
+    visibility: "private",
     pnl: 12.5,
     riskLevel: "Low",
     tags: ["AI", "New"],
@@ -335,9 +336,38 @@ export const STRATS_CARDS: Strategy[] = [
     history: [],
     pnl: 0,
     riskLevel: "Medium",
+    visibility: "public",
+
     tags: ["Chart Patterns", "Reversal"],
     entryCriterias: ["Bullish engulfing pattern", "Volume increase > 100%"],
     exitCriteria: ["Bearish engulfing pattern", "Take Profit reached"],
+    exchanges: ["Binance", "Bybit"],
+    activities: [] as { message: string; timestamp: Date }[],
+    compatibility:
+      "This strategy is only supported on Binance and Bybit Exchanges. Please add your api keys and credit your futures account for the best experience.",
+  },
+  {
+    icon: [
+      "https://assets.coingecko.com/markets/images/698/small/bybit_spot.png",
+      "https://assets.coingecko.com/markets/images/52/small/binance.jpg",
+    ],
+    title: "Divergence",
+    subtitle: "Spotting Divergence patterns.",
+    category: "CEX",
+    features: [
+      "Identify bullish and bearish divergence patterns.",
+      "Use patterns to predict price reversals.",
+    ],
+    notes: ["Divergence patterns are strong reversal signals."],
+    chains: ["Ethereum", "BNB Smart Chain"],
+    tradeType: "Day",
+    history: [],
+    pnl: 0,
+    visibility: "private",
+    riskLevel: "Medium",
+    tags: ["Chart Patterns", "Reversal"],
+    entryCriterias: ["Bullish divergence pattern", "Volume increase > 100%"],
+    exitCriteria: ["Bearish divergence pattern", "Take Profit reached"],
     exchanges: ["Binance", "Bybit"],
     activities: [] as { message: string; timestamp: Date }[],
     compatibility:

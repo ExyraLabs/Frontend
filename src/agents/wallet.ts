@@ -80,7 +80,8 @@ export const getBalance = async (
         }
       );
 
-      console.log(res.data.result.list[0].totalAvailableBalance);
+      // console.log(res.data.result.list[0].totalAvailableBalance);
+      // console.log(res);
       return res.data.result.list[0].totalAvailableBalance;
     } else if (exchange === "Binance") {
       if (!binance.apiKey || !binance.secretKey) {
@@ -109,7 +110,8 @@ export const getBalance = async (
     //eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.log(error.response ? error.response.statusText : error.message);
-    throw error; // Re-throw to allow caller to handle
+    console.log(error.response);
+    // throw error; // Re-throw to allow caller to handle
   }
 };
 export const getPositionInfo = async (
