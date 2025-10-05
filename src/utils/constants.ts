@@ -83,7 +83,7 @@ export const AGENT_CARDS = [
       "Find optimal swap rates across DEXs",
       "Execute swap with 0.5% slippage tolerance",
     ],
-    chains: ["Ethereum"],
+    chains: ["Ethereum", "BNB Smart Chain", "Polygon"],
   },
   {
     icon: "/icons/gecko.png",
@@ -101,7 +101,15 @@ export const AGENT_CARDS = [
       "Search for Ethereum token information",
       "Get token details and price for SOL",
     ],
-    chains: ["Ethereum"],
+    chains: [
+      "Ethereum",
+      "BNB Smart Chain",
+      "Arbitrum",
+      "Optimism",
+      "Solana",
+      "Monad",
+      "Berachain",
+    ],
   },
   // {
   //   icon: "/icons/curve.jpeg",
@@ -203,7 +211,14 @@ export const AGENT_CARDS = [
       "Find cheapest way to bridge USDT to Base",
       "Get bridge fees for 0.5 ETH to Optimism",
     ],
-    chains: ["Ethereum", "Polygon"],
+    chains: [
+      "Ethereum",
+      "Polygon",
+      "BNB Smart Chain",
+      "Arbitrum",
+      "Optimism",
+      "Solana",
+    ],
   },
   {
     icon: "https://assets.coingecko.com/markets/images/52/small/binance.jpg",
