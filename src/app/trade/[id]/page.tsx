@@ -807,7 +807,7 @@ const StrategyDetailsPage = () => {
   }
 
   return (
-    <div className="w-full overflow-y-auto scrollbar-hide px-4 md:px-6 lg:px-8 pb-10">
+    <div className="w-full overflow-y-auto flex  flex-col  scrollbar-hide px-4 md:px-6 lg:px-8 pb-0 h-full mb-4">
       {/* Back link */}
       <div className="flex items-center gap-2 text-[#9B9D9D] text-sm ">
         <Link href="/trade" className="hover:underline flex items-center">
@@ -821,7 +821,7 @@ const StrategyDetailsPage = () => {
         </Link>
       </div>
 
-      <div className="flex flex-col md:flex-row mt-5 items-center gap-6 lg:h-[200px] justify-between">
+      <div className="flex flex-col md:flex-row mt-5 items-center gap-6 lg:h-[200px]  justify-between">
         {/* Left/Main Column */}
         {/* Header Card */}
         <div className="bg-[#222223] w-full  flex flex-col md:flex-row items-start justify-between py-4 px-8 border h-full flex-1 border-[#474848] rounded-[16px] ">
@@ -1033,7 +1033,7 @@ const StrategyDetailsPage = () => {
           </div>
         </div>
         {/* Right/Sidebar */}
-        <div className="flex bg-[#222223] gap-2.5 w-full md:w-auto min-w-[261px] border h-full  border-[#474848] rounded-[16px] p-2.5 justify-center flex-col">
+        <div className="flex bg-[#222223] gap-2.5 w-full md:w-auto min-w-[200px] border h-full  border-[#474848] rounded-[16px] p-2.5 justify-center flex-col">
           <button onClick={() => setModalTab("Overview")} className="text-left">
             <SidebarCard title="Overview" icon="qlementine-icons:key-cmd-16" />
           </button>
@@ -1059,10 +1059,10 @@ const StrategyDetailsPage = () => {
       </div>
 
       {/* Your Position */}
-      <div className="mt-10">
+      <div className="mt-10  flex flex-col flex-1 min-h-0">
         <div className="text-white font-semibold mb-3">Your Position</div>
 
-        <div className="bg-[#222223]  border border-[#474848] rounded-[16px] p-4">
+        <div className="bg-[#222223] flex flex-col flex-1 min-h-0 border border-[#474848] rounded-[16px] p-4">
           <div className="">
             <div className="flex  flex-col md:flex-row gap-3">
               <div className="flex-1 flex items-center bg-[#1E1F1F] border-[0.5px] border-[#d9d9d9]/40 rounded-[12px] px-3 h-[52px] min-h-[52px]">
@@ -1275,11 +1275,11 @@ const StrategyDetailsPage = () => {
           )}
 
           {/* Transaction History */}
-          <div className="mt-4">
+          <div className="mt-4 flex flex-col flex-1 min-h-0">
             <div className="text-white font-medium text-sm mb-2">
               Transaction History
             </div>
-            <div className="h-60 lg:h-[18vh] overflow-y-auto scrollbar-hide pr-2">
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide pr-2">
               {/* Live transaction data */}
               {loadingTransactions ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
