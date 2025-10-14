@@ -1,13 +1,10 @@
 "use client";
 import { useUserStatistics } from "@/hooks/useUserStatistics";
+import { ADMIN_WALLETS } from "@/utils/constants";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { useState, useMemo } from "react";
 
 // Admin wallets
-const ADMIN_WALLETS = [
-  "0x1d3420a527C4002338B20f22E5dCD48fB44a4E51",
-  "0x3f9b81397aB61e18092291287d05f44D24Fd53C6",
-];
 
 interface FilterState {
   search: string;

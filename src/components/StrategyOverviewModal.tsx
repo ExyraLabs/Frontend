@@ -353,45 +353,48 @@ const StrategyOverviewModal: React.FC<StrategyOverviewModalProps> = ({
                       </tr>
                     </thead>
                     <tbody className="text-sm">
-                      {(
-                        strategy.history as TradeHistoryEntry[] | undefined
-                      )?.map((trade, idx) => {
-                        const pnlValue = trade.pnl;
-                        const isLoss = pnlValue ? Number(pnlValue) < 0 : false;
-                        return (
-                          <tr
-                            key={idx}
-                            className="border-t border-[#303131] text-[#C7C7C7]"
-                          >
-                            <td className="py-3 text-xs">{trade.coin}</td>
-                            <td className="py-3 text-xs hidden md:block">
-                              {new Date(
-                                trade.entryDate || ""
-                              ).toLocaleString() || "-"}
-                            </td>
-                            <td className="py-3 text-xs  items-center gap-1">
-                              {trade.entryPrice.toLocaleString()}
-                            </td>
-                            <td className="py-3 text-xs hidden md:block">
-                              {trade.exitDate
-                                ? new Date(trade.exitDate).toLocaleString()
-                                : "-"}
-                            </td>
-                            <td className="py-3 text-xs  items-center gap-1">
-                              {trade.exitPrice?.toLocaleString() || "-"}
-                            </td>
-                            <td
-                              className={`py-3 text-xs font-medium ${
-                                isLoss ? "text-red-500" : "text-green-400"
-                              }`}
+                      {(strategy.history as TradeHistoryEntry[] | undefined)
+                        ?.slice()
+                        .reverse()
+                        .map((trade, idx) => {
+                          const pnlValue = trade.pnl;
+                          const isLoss = pnlValue
+                            ? Number(pnlValue) < 0
+                            : false;
+                          return (
+                            <tr
+                              key={idx}
+                              className="border-t border-[#303131] text-[#C7C7C7]"
                             >
-                              {pnlValue
-                                ? `${Math.abs(Number(pnlValue))}%`
-                                : "-"}
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              <td className="py-3 text-xs">{trade.coin}</td>
+                              <td className="py-3 text-xs hidden md:block">
+                                {new Date(
+                                  trade.entryDate || ""
+                                ).toLocaleString() || "-"}
+                              </td>
+                              <td className="py-3 text-xs  items-center gap-1">
+                                {trade.entryPrice.toLocaleString()}
+                              </td>
+                              <td className="py-3 text-xs hidden md:block">
+                                {trade.exitDate
+                                  ? new Date(trade.exitDate).toLocaleString()
+                                  : "-"}
+                              </td>
+                              <td className="py-3 text-xs  items-center gap-1">
+                                {trade.exitPrice?.toLocaleString() || "-"}
+                              </td>
+                              <td
+                                className={`py-3 text-xs font-medium ${
+                                  isLoss ? "text-red-500" : "text-green-400"
+                                }`}
+                              >
+                                {pnlValue
+                                  ? `${Math.abs(Number(pnlValue))}%`
+                                  : "-"}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       {!strategy.history?.length && (
                         <tr>
                           <td

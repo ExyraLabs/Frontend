@@ -526,3 +526,8 @@ export const getToolIcon = (toolName: string): string | null => {
 
   return toolIconMapping[toolName] || null;
 };
+
+export const ADMIN_WALLETS = [
+  "0x1d3420a527C4002338B20f22E5dCD48fB44a4E51",
+  "0x3f9b81397aB61e18092291287d05f44D24Fd53C6",
+];

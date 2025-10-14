@@ -1,8 +1,9 @@
 "use client";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
-import { chainImageMapping } from "@/utils/constants";
+import { chainImageMapping, ADMIN_WALLETS } from "@/utils/constants";
 import { useCopilotMessagesContext } from "@copilotkit/react-core";
+import { useAppKitAccount } from "@reown/appkit/react";
 import StratCard from "@/components/StratsCard";
 import type { Strategy } from "@/types/strategy";
 import { getAllStrategies } from "@/actions/strategies";
@@ -38,6 +39,10 @@ const Explore = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { setMessages } = useCopilotMessagesContext();
+  const { address } = useAppKitAccount();
+
+  // Check if current user is admin
+  const isAdmin = address && ADMIN_WALLETS.includes(address as string);
 
   // Fetch strategies from database
   const fetchStrategies = async () => {
@@ -72,7 +77,9 @@ const Explore = () => {
       selectedChain === "All Chains" ||
       (strategy.chains && strategy.chains.includes(selectedChain));
 
-    return matchesTab && matchesChain && strategy.visibility !== "private";
+    // Admin users can see all strategies, regular users can't see private strategies
+    const isVisible = isAdmin || strategy.visibility !== "private";
+    return matchesTab && matchesChain && isVisible;
   });
 
   useEffect(() => {

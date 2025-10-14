@@ -723,21 +723,19 @@ const StrategyDetailsPage = () => {
 
   useEffect(() => {
     fetchStrategyAndAUM();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (address && isConnected) {
+    if (address && isConnected && strategy) {
       fetchBalances();
       fetchUserAllocation();
       fetchUserTransactions();
     }
-  }, [
-    address,
-    isConnected,
-    fetchBalances,
-    fetchUserAllocation,
-    fetchUserTransactions,
-  ]);
+    // Only re-run when address, isConnected, or strategy.title changes
+    // Not when the callback functions change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, isConnected, strategy?.title]);
 
   // Loading state
   if (loading) {
