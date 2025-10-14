@@ -22,7 +22,7 @@ jobs:
           script: |
             set -e  # Exit on first error
 
-            cd exyra/app || { echo "Error: 'exyra' directory not found"; exit 1; }
+            cd cerebrum || { echo "Error: 'cerebrum' directory not found"; exit 1; }
 
             # Pull latest changes
             git fetch origin main || { echo "Error: Git fetch failed"; exit 1; }
