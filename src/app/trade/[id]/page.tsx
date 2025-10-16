@@ -1416,8 +1416,14 @@ const StrategyDetailsPage = () => {
                                 : "text-white"
                             }`}
                           >
-                            {transaction.pnl
-                              ? `${transaction?.pnl?.toFixed(2)}`
+                            {typeof transaction.pnl === "number"
+                              ? `${
+                                  transaction.pnl > 0
+                                    ? "+"
+                                    : transaction.pnl < 0
+                                    ? "-"
+                                    : ""
+                                }${Math.abs(transaction.pnl).toFixed(2)}`
                               : ""}
                           </span>
                         </div>
