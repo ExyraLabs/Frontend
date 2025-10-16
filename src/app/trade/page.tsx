@@ -42,7 +42,8 @@ const Explore = () => {
   const { address } = useAppKitAccount();
 
   // Check if current user is admin
-  const isAdmin = address && ADMIN_WALLETS.includes(address as string);
+  const isAdmin =
+    address && ADMIN_WALLETS.includes(address.toLowerCase() as string);
 
   // Fetch strategies from database
   const fetchStrategies = async () => {
