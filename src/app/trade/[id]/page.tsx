@@ -339,7 +339,21 @@ const StrategyDetailsPage = () => {
       });
 
       if (result.success) {
-        setTransactions(result.transactions || []);
+        const txs = Array.isArray(result.transactions)
+          ? result.transactions
+          : [];
+        // Normalize dates and sort by entryDate (latest first)
+        const normalized = txs.map((t) => ({
+          ...t,
+          entryDate: t?.entryDate ? new Date(t.entryDate) : t.entryDate,
+          exitDate: t?.exitDate ? new Date(t.exitDate) : t.exitDate,
+        }));
+        const sorted = normalized.sort((a, b) => {
+          const aTime = a?.entryDate ? new Date(a.entryDate).getTime() : 0;
+          const bTime = b?.entryDate ? new Date(b.entryDate).getTime() : 0;
+          return bTime - aTime; // latest first
+        });
+        setTransactions(sorted);
       } else {
         console.error("Error fetching transactions:", result.message);
         setTransactions([]);
@@ -563,7 +577,7 @@ const StrategyDetailsPage = () => {
         setLoadingBalances(false);
       }
     },
-    [address, isConnected, CACHE_DURATION, getCacheKey]
+    [address, isConnected, getCacheKey]
   ); // Add all dependencies
 
   const handleRefreshBalances = () => {
@@ -1389,7 +1403,9 @@ const StrategyDetailsPage = () => {
                         </div>
                       </div>
                       <div className="flex flex-col bg-[#262727] border border-[#3A3B3B] rounded-[8px] px-3 py-2 min-w-[100px]">
-                        <span className="text-[#9B9D9D] text-[10px]">PNL</span>
+                        <span className="text-[#9B9D9D] text-[10px]">
+                          PNL (USD)
+                        </span>
                         <div className="flex items-center gap-2">
                           <span
                             className={`text-sm font-semibold ${

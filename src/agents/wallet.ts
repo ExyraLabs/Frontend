@@ -80,7 +80,7 @@ export const getBalance = async (
         }
       );
 
-      // console.log(res.data.result.list[0].totalAvailableBalance);
+      console.log(res.data.result.list[0]);
       // console.log(res);
       return res.data.result.list[0].totalAvailableBalance;
     } else if (exchange === "Binance") {
@@ -671,3 +671,9 @@ export const getSymbolLeverage = async (
 // changeLeverage("BTCUSDT", 5, "Bybit");
 // getBalance("Binance");
 // getSymbolLeverage("BTCUSDT", "Binance", userAddress);
+
+getBalance("Bybit", "0x1d3420a527c4002338b20f22e5dcd48fb44a4e51").then(
+  (balance) => {
+    console.log("Balance:", balance);
+  }
+);
