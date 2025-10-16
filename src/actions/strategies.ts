@@ -127,36 +127,51 @@ export async function allocateUserStrategy({
     const db = client.db();
     const usersCollection = db.collection("users");
 
-    const newStrategy: UserStrategy = {
-      strategyId,
-      strategyName,
-      funds: Number(allocatedFunds),
-      selectedExchange,
-      dateAllocated: new Date(),
-      status: "active",
-      tradeHistory: [],
-      performance: {
-        totalPnl: 0,
-        totalTrades: 0,
-        winRate: 0,
-      },
-    };
-
-    // Create or update user strategy
-    await usersCollection.updateOne(
-      { address: walletAddress.toLowerCase() },
+    // 1) Try to increment funds on an existing allocation (same strategyId + selectedExchange)
+    const existingUpdate = await usersCollection.updateOne(
       {
-        $push: {
-          strategies: newStrategy,
-          //eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as unknown as any,
-        $setOnInsert: {
-          address: walletAddress.toLowerCase(),
-          createdAt: new Date(),
-        },
+        address: walletAddress.toLowerCase(),
+        "strategies.strategyId": strategyId,
+        "strategies.selectedExchange": selectedExchange,
       },
-      { upsert: true }
+      {
+        $inc: { "strategies.$.funds": Number(allocatedFunds) },
+        $set: { "strategies.$.status": "active" },
+      }
     );
+
+    // 2) If no existing allocation was updated, push a new strategy entry (and upsert the user)
+    if (existingUpdate.matchedCount === 0) {
+      const newStrategy: UserStrategy = {
+        strategyId,
+        strategyName,
+        funds: Number(allocatedFunds),
+        selectedExchange,
+        dateAllocated: new Date(),
+        status: "active",
+        tradeHistory: [],
+        performance: {
+          totalPnl: 0,
+          totalTrades: 0,
+          winRate: 0,
+        },
+      };
+
+      await usersCollection.updateOne(
+        { address: walletAddress.toLowerCase() },
+        {
+          $push: {
+            strategies: newStrategy,
+            //eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as unknown as any,
+          $setOnInsert: {
+            address: walletAddress.toLowerCase(),
+            createdAt: new Date(),
+          },
+        },
+        { upsert: true }
+      );
+    }
 
     // Add allocation activity to the strategy
     const allocationActivity = formatAllocationActivity(

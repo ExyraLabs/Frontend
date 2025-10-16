@@ -528,6 +528,7 @@ export const getToolIcon = (toolName: string): string | null => {
 };
 
 export const ADMIN_WALLETS = [
-  "0x1d3420a527C4002338B20f22E5dCD48fB44a4E51",
-  "0x3f9b81397aB61e18092291287d05f44D24Fd53C6",
+  "0x1d3420a527c4002338b20f22e5dcd48fb44a4e51",
+  "0x3f9b81397ab61e18092291287d05f44d24fd53c6",
+  "0xe4cdf1ddc97bd5dee8a0f0044e1260856e738d49",
 ];
