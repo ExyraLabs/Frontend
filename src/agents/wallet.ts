@@ -672,8 +672,8 @@ export const getSymbolLeverage = async (
 // getBalance("Binance");
 // getSymbolLeverage("BTCUSDT", "Binance", userAddress);
 
-getBalance("Bybit", "0x1d3420a527c4002338b20f22e5dcd48fb44a4e51").then(
-  (balance) => {
-    console.log("Balance:", balance);
-  }
-);
+// getBalance("Bybit", "0x1d3420a527c4002338b20f22e5dcd48fb44a4e51").then(
+//   (balance) => {
+//     console.log("Balance:", balance);
+//   }
+// );
