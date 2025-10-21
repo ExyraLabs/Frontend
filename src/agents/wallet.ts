@@ -1,12 +1,13 @@
+"use server"
+
 import axios from "axios";
 import crypto from "crypto";
 import { getUserApiKeys } from "@/actions/keys";
-import { error } from "console";
 
-export const binanceBaseUrl = "https://fapi.binance.com/fapi/v1/";
-export const binanceAPI = "https://fapi.binance.com/fapi/v1/markPriceKlines";
-export const bybitBaseUrl = "https://api.bybit.com/v5/";
-export const bybitAPI = "https://api.bybit.com/v5/market/kline";
+const binanceBaseUrl = "https://fapi.binance.com/fapi/v1/";
+const binanceAPI = "https://fapi.binance.com/fapi/v1/markPriceKlines";
+const bybitBaseUrl = "https://api.bybit.com/v5/";
+const bybitAPI = "https://api.bybit.com/v5/market/kline";
 
 // Helper function to create Binance signature
 const createBinanceSignature = (
